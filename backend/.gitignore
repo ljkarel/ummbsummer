@@ -1,0 +1,4 @@
+.env
+member_data_first_round.csv
+venv/
+__pycache__/
