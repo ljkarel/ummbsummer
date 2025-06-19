@@ -32,7 +32,7 @@ ACTIVITIES_URL = f'{BASE_URL}/athlete/activities'
 
 
 def valid_scope(scope):
-    return 'activity:read_all' in scope or 'activity_read' in scope
+    return 'activity:read_all' in scope or 'activity:read' in scope
 
 # Make a request to Strava for an access token
 def token_exchange(auth_code):

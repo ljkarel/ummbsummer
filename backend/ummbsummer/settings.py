@@ -28,20 +28,23 @@ load_dotenv(find_dotenv())
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
+
+STATIC_ROOT = '/var/www/ummbsummer/static'
+
 
 # TODO: Check if this is needed
 SESSION_COOKIE_SAMESITE = 'None'
 SESSION_COOKIE_SECURE = True
 
+BASE_URL = 'https://ummbsummer.com'
 
 ALLOWED_HOSTS = [
-    "localhost",
-    "2a54-67-218-23-206.ngrok-free.app",
-    '127.0.0.1',
+    'ummbsummer.com'
 ]
 
 CORS_ALLOWED_ORIGINS = [
+    'https://ummbsummer.com',
     'http://localhost:5173',
     'http://127.0.0.1:5173',
 ]
@@ -49,6 +52,7 @@ CORS_ALLOWED_ORIGINS = [
 CORS_ALLOW_CREDENTIALS = True
 
 CSRF_TRUSTED_ORIGINS = [
+    'https://ummbsummer.com',
     'http://localhost:5173',
     'http://127.0.0.1:5173',
 ]
