@@ -15,6 +15,8 @@ from rest_framework.response import Response
 from .api import valid_scope, token_exchange
 from members.models import StravaAuth
 
+from django.conf import settings
+
 WEBHOOK_ENDPOINT_TOKEN = os.getenv('STRAVA_WEBHOOK_ENDPOINT_TOKEN')
 WEBHOOK_VERIFY_TOKEN = os.getenv('STRAVA_WEBHOOK_VERIFY_TOKEN')
 WEBHOOK_SUBSCRIPTION_ID = os.getenv('STRAVA_WEBHOOK_SUBSCRIPTION_ID')
@@ -24,7 +26,7 @@ CLIENT_ID = os.getenv('STRAVA_CLIENT_ID')
 
 OAUTH_URL = f'https://www.strava.com/oauth/authorize'
 
-FRONTEND_REDIRECT = "http://localhost:5173?registration_complete=true"
+FRONTEND_REDIRECT = f'{settings.BASE_URL}?registration_complete=true'
 
 
 class StravaAuthInit(APIView):
@@ -44,16 +46,15 @@ class StravaAuthCallback(APIView):
     def get(self, request):
         print(request.user)
 
-
         code = request.GET.get('code')
         scope = request.GET.get('scope')
         error = request.GET.get('error')
 
         if error or not code or not scope:
-            redirect('strava_auth_init')
+            return redirect('strava_auth_init')
         
         if not valid_scope(scope):
-            redirect('strava_auth_init')
+            return redirect('strava_auth_init')
         
         token_data = token_exchange(code)
 

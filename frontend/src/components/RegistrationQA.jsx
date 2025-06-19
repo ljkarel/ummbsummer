@@ -35,10 +35,9 @@ export default function RegistrationQA() {
           <Typography>
             When you press <strong>Connect with STRAVA</strong>, you will be brought to Strava{"'"}s authentication page
             for our minute tracker app, where you can grant us permission to your activities (to track minutes). If you 
-            wish to have any private activities count for your team, you may opt to grant permission to track activities 
+            wish to have any private activities count for your section, you may opt to grant permission to track activities 
             that are private. Strava will then provide the app with an authorization code (via OAuth2) to access the 
-            content you allowed. The app will then be able to track your minutes. <i>NOTE: you must be a member of the <a 
-            href="https://www.strava.com/clubs/ummb2024"> Strava Club</a> for the registration process to work.</i>
+            content you allowed. The app will then be able to track your minutes.
           </Typography>
         </AccordionDetails>
       </Accordion>
@@ -69,10 +68,9 @@ export default function RegistrationQA() {
         <AccordionDetails>
           <Typography>
             Yes. This application uses OAuth2 with Strava to securely access information from Strava{"'"}s database. No 
-            usernames or passwords are shared with this app in the process. We do not access any information other than 
-            activity type, date, and minutes. At any point you may go to <strong>Strava {">"} My Settings {">"} My Apps
-            </strong> and revoke access for this app. <i>NOTE: Revoking access to this app will mean that your 
-              activities will no longer count toward your team.</i>
+            usernames or passwords are shared with this app in the process. At any point you may go to <strong>Strava 
+            {">"} My Settings {">"} My Apps </strong> and revoke access for this app. <i>NOTE: Revoking access to this 
+            app will mean that your activities will no longer count toward your section.</i>
           </Typography>
         </AccordionDetails>
       </Accordion>
@@ -80,14 +78,12 @@ export default function RegistrationQA() {
       <Accordion elevation={3} disableGutters expanded={expanded === 'panel4'} onChange={handleChange('panel4')}>
         <AccordionSummary expandIcon={<ExpandMoreIcon />}>
           <Typography>
-            It{"'"}s not working, what{"'"}s wrong?
+            It{"'"}s not working?
           </Typography>
         </AccordionSummary>
         <AccordionDetails>
           <Typography>
-            Make sure you are in the <a href="https://www.strava.com/clubs/ummb2024">Strava Club</a>. Once you are 
-            accepted, we will manually set up your account in our app using your strava ID so that you can authorize 
-            with Strava. If you are still having issues, please contact Lukas Karel at <strong>karel084@umn.edu</strong>.
+            Please contact Lukas Karel at <strong>karel084@umn.edu</strong> with any issues.
           </Typography>
         </AccordionDetails>
       </Accordion>

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
+
 import { styled, Box, CircularProgress, Alert, Snackbar, Typography, Badge } from '@mui/material';
 
 // MUI icons
@@ -10,8 +10,7 @@ import XIcon from '@mui/icons-material/HighlightOff'
 import RegistrationMembers from '../components/RegistrationMembers';
 import RegistrationQA from '../components/RegistrationQA';
 
-const API_URL = 'http://127.0.0.1:8000/api'
-// const API_URL = 'https://ummbsummer.com/api'
+import { BASE_URL, api } from '../utilities'
 
 import connect_with_strava from '../assets/stravaConnect.svg'
 
@@ -49,13 +48,13 @@ export default function HomePage() {
 
   // Get current user
   useEffect(() => {
-    axios
-      .get(`${API_URL}/auth/google/me`, { withCredentials: true})
+    api
+      .get('/auth/google/me', { withCredentials: true})
       .then((res) => setUser(res.data))
       .catch((err) => {
         if (err.response?.status === 403) {
           // If the user is not logged in, redirect to Google login page
-          window.location.href = `${API_URL}/auth/google/`;
+          window.location.href = '/api/auth/google/';
         } else {
           console.error("Unexpected error:", err);
         }
@@ -66,15 +65,15 @@ export default function HomePage() {
   // Get registered and unregistered members
   useEffect(() => {
     const getRegisteredMembers = async () => {
-      const res = await axios.get(
-        `${API_URL}/members?authenticated=true`, { withCredentials: true }
+      const res = await api.get(
+        '/members?authenticated=true', { withCredentials: true }
       )
       setRegisteredMembers(res.data);
     };
 
     const getUnregisteredMembers = async () => {
-      const res = await axios.get(
-        `${API_URL}/members?authenticated=false`, { withCredentials: true }
+      const res = await api.get(
+        '/members?authenticated=false', { withCredentials: true }
       )
       setUnregisteredMembers(res.data);
     }
@@ -133,7 +132,7 @@ export default function HomePage() {
           <Typography sx={{pb:2,}} variant='h6' align='center'>
             Press the button below to authenticate with Strava and allow for your minutes to be tracked.
           </Typography>
-          <a href={'http://localhost:8000/api/strava'}>
+          <a href={`${BASE_URL}/api/strava`}>
               <img src={connect_with_strava} width='250'/>
           </a>
         </Box>
