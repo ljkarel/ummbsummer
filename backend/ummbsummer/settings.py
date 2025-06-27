@@ -28,7 +28,7 @@ load_dotenv(find_dotenv())
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
 STATIC_ROOT = '/var/www/ummbsummer/static'
 
@@ -37,26 +37,21 @@ STATIC_ROOT = '/var/www/ummbsummer/static'
 SESSION_COOKIE_SAMESITE = 'None'
 SESSION_COOKIE_SECURE = True
 
-BASE_URL = 'https://ummbsummer.com'
+LOCAL_BACKEND_URL = 'http://localhost:8000'
+LOCAL_FRONTEND_URL = 'http://localhost:5173'
 
-ALLOWED_HOSTS = [
-    'ummbsummer.com'
-]
+PRODUCTION_URL = 'https://ummbsummer.com'
 
-CORS_ALLOWED_ORIGINS = [
-    'https://ummbsummer.com',
-    'http://localhost:5173',
-    'http://127.0.0.1:5173',
-]
+BASE_BACKEND_URL = LOCAL_BACKEND_URL if DEBUG else PRODUCTION_URL
+BASE_FRONTEND_URL = LOCAL_FRONTEND_URL if DEBUG else PRODUCTION_URL
+
+ALLOWED_HOSTS = ['localhost'] if DEBUG else ['ummbsummer.com']
+
+CORS_ALLOWED_ORIGINS = [LOCAL_FRONTEND_URL] if DEBUG else [PRODUCTION_URL]
 
 CORS_ALLOW_CREDENTIALS = True
 
-CSRF_TRUSTED_ORIGINS = [
-    'https://ummbsummer.com',
-    'http://localhost:5173',
-    'http://127.0.0.1:5173',
-]
-
+CSRF_TRUSTED_ORIGINS = [LOCAL_FRONTEND_URL] if DEBUG else [PRODUCTION_URL]
 
 # Application definition
 
@@ -70,8 +65,10 @@ INSTALLED_APPS = [
     'corsheaders',
     'rest_framework',
     'members',
+    'sections',
     'activities',
     'strava',
+    'google_auth',
 ]
 
 MIDDLEWARE = [

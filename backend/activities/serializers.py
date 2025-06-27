@@ -1,7 +1,8 @@
-from rest_framework.serializers import ModelSerializer
+from rest_framework.serializers import ModelSerializer, DateTimeField
 from .models import Activity
+
 
 class ActivitySerializer(ModelSerializer):
     class Meta:
         model = Activity
-        fields = ['activity_id', 'name', 'datetime', 'type', 'minutes', 'distance', 'manual', 'private']
+        fields = '__all__'

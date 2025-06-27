@@ -21,7 +21,7 @@ from django.conf import settings
 CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID')
 CLIENT_SECRET = os.getenv('GOOGLE_CLIENT_SECRET')
 
-REDIRECT_URI = f'{settings.BASE_URL}/api/auth/google/callback/'
+REDIRECT_URI = f'{settings.BASE_BACKEND_URL}/api/auth/google/callback/'
 HD = 'umn.edu'
 
 CLIENT_CONFIG = {
@@ -40,6 +40,11 @@ class GoogleAuthInit(APIView):
     permission_classes = []
 
     def get(self, request):
+        if settings.DEBUG:
+            member = Member.objects.get(email='ljkarel11@gmail.com')
+            login(request, member.user)
+            return redirect(settings.BASE_FRONTEND_URL)
+
         print(request.user)
         flow = Flow.from_client_config(
             client_config=CLIENT_CONFIG,
@@ -109,7 +114,7 @@ class GoogleAuthCallback(APIView):
         print("Logging user in...")
         login(request, user)
 
-        return redirect(settings.BASE_URL)
+        return redirect(settings.BASE_FRONTEND_URL)
 
 class LogOut(APIView):
     def get(self, request):
