@@ -1,8 +1,8 @@
 from django.contrib import admin
-from .models import Section, StravaAuth, Member
+from .models import Section, Member, StravaAuth
 
 admin.site.register([
     Section,
-    StravaAuth,
-    Member
+    Member,
+    StravaAuth
 ])
