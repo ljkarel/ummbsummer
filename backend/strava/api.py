@@ -1,6 +1,6 @@
 import os
 import requests
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 
 from django.utils.timezone import now
 
@@ -32,7 +32,6 @@ DEAUTH_URL = f'{BASE_URL}/oauth/deauthorize'
 # URL endpoint for Strava activity GET requests
 ACTIVITIES_URL = f'{BASE_URL}/athlete/activities'
 
-TOKEN_EXPIRY_BUFFER = timedelta(seconds=60)
 
 def meters_to_miles(meters):
     return round(meters / 1609.34, 2)
@@ -66,10 +65,6 @@ def epoch_to_datetime(epoch_time):
     return datetime.fromtimestamp(epoch_time, tz=timezone.utc)
 
 
-def token_expired(token_expiration_datetime):
-    """Checks if a token is expired (or about to expire)."""
-    return token_expiration_datetime < now() + TOKEN_EXPIRY_BUFFER
-
 
 def update_strava_auth(strava_auth: StravaAuth, token_data):
     """Updates Strava auth info with provided token data response JSON."""
@@ -86,7 +81,7 @@ def refresh_access_token(member: Member):
     strava_auth = member.strava_auth
 
     # Check if the member's access token is expired; if not, return it
-    if not token_expired(strava_auth.token_expires):
+    if not strava_auth.token_expired:
         return
     
     # Otherwise, obtain a new access token and update the member's auth info
