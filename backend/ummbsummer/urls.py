@@ -22,5 +22,5 @@ urlpatterns = [
     path('api/members/', include('members.urls')),
     path('api/activities/', include('activities.urls')),
     path('api/strava/', include('strava.urls')),
-    path('api/auth/google/', include('google_auth.urls'))
+    path('api/auth/', include('google_auth.urls'))
 ]

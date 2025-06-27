@@ -26,8 +26,8 @@ CLIENT_ID = os.getenv('STRAVA_CLIENT_ID')
 
 OAUTH_URL = f'https://www.strava.com/oauth/authorize'
 
-FRONTEND_REDIRECT = f'{settings.BASE_URL}?registration_complete=true'
 
+FRONTEND_REDIRECT = f'{settings.BASE_FRONTEND_URL}?registration_complete=true'
 
 class StravaAuthInit(APIView):
     def get(self, request):

@@ -54,7 +54,7 @@ export default function HomePage() {
       .catch((err) => {
         if (err.response?.status === 403) {
           // If the user is not logged in, redirect to Google login page
-          window.location.href = '/api/auth/google/';
+          window.location.href = `${BASE_URL}/api/auth/google/`;
         } else {
           console.error("Unexpected error:", err);
         }
