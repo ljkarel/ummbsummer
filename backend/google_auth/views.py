@@ -1,27 +1,24 @@
 import os
+
+from google.oauth2 import id_token
+from google_auth_oauthlib.flow import Flow
 from google.auth.transport.requests import Request
 
 from rest_framework.views import APIView
-from google_auth_oauthlib.flow import Flow
-from google.oauth2 import id_token
+from rest_framework import status
+from rest_framework.response import Response
 from django.shortcuts import redirect
 from django.contrib.auth import login, logout
 from django.contrib.auth.models import User
-
-from rest_framework import status
-
-from rest_framework.response import Response
+from django.conf import settings
 
 from members.models import Member
 
-from django.conf import settings
-
-# Create your views here.
 
 CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID')
 CLIENT_SECRET = os.getenv('GOOGLE_CLIENT_SECRET')
 
-REDIRECT_URI = f'{settings.BASE_BACKEND_URL}/api/auth/google/callback/'
+REDIRECT_URI = f'{settings.BASE_BACKEND_URL}/api/auth/callback/'
 HD = 'umn.edu'
 
 CLIENT_CONFIG = {
@@ -35,13 +32,13 @@ CLIENT_CONFIG = {
 }
 SCOPES = ['openid', 'https://www.googleapis.com/auth/userinfo.email']
 
-class GoogleAuthInit(APIView):
+class GoogleAuthLoginView(APIView):
     authentication_classes = []
     permission_classes = []
 
     def get(self, request):
         if settings.DEBUG:
-            member = Member.objects.get(email='ljkarel11@gmail.com')
+            member = Member.objects.get(email='karel084@umn.edu')
             login(request, member.user)
             return redirect(settings.BASE_FRONTEND_URL)
 
@@ -58,7 +55,7 @@ class GoogleAuthInit(APIView):
         request.session['google_auth_state'] = state
         return redirect(auth_url)
 
-class GoogleAuthCallback(APIView):
+class GoogleAuthCallbackView(APIView):
     authentication_classes = []
     permission_classes = []
 
@@ -116,13 +113,13 @@ class GoogleAuthCallback(APIView):
 
         return redirect(settings.BASE_FRONTEND_URL)
 
-class LogOut(APIView):
+class GoogleAuthLogoutView(APIView):
     def get(self, request):
         print("Logging user out...")
         logout(request)
         return redirect('http://localhost:5173/end')
     
-class Me(APIView):
+class GoogleAuthStatusView(APIView):
     def get(self, request):
         user = request.user
         
@@ -134,5 +131,5 @@ class Me(APIView):
         return Response({
             'first_name': member.first_name,
             'last_name': member.last_name,
-            'strava_authenticated': member.strava_auth is not None,
+            'strava_authenticated': hasattr(member, 'strava_auth'),
         })

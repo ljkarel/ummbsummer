@@ -1,22 +1,67 @@
-from members.models import MemberWeeklyPoints
-from sections.models import SectionWeeklyScore
+import csv
+from datetime import timezone, datetime
+from .models import Member, Section, StravaAuth
 
+def import_roster(csv_path="./roster.csv"):
+    new_members = []
+    csv_emails = set()
 
-def add_to_member_minutes(member_weekly_points: MemberWeeklyPoints, minutes: int):
-    section = member_weekly_points.member.section
-    week = member_weekly_points.week
-    section_weekly_score = SectionWeeklyScore.objects.get(section=section, week=week)
+    with open(csv_path, newline='') as csvfile:
+        reader = csv.DictReader(csvfile)
+        for row in reader:
+            # Ensure that the member has a UMN email
+            email = row['email'].strip()
+            if not email:
+                continue
+            csv_emails.add(email)
 
-    old_member_points = member_weekly_points.points
+            # Create section with specified name, if it doesn't exist yet
+            section_name = row['section'].strip()
+            section, _ = Section.objects.get_or_create(name=section_name)
 
-    member_weekly_points.minutes += minutes
-    member_weekly_points.save()
+            # If a member with that email exists, update it (as necessary); otherwise, create it
+            member, created = Member.objects.update_or_create(
+                email=email,
+                defaults={
+                    'first_name': row['first name'].strip(),
+                    'last_name': row['last name'].strip(),
+                    'section': section,
+                    'year': int(row['year'])
+                }
+            )
 
-    new_member_points = member_weekly_points.points
+            if created:
+                new_members.append(member)
 
-    difference = new_member_points - old_member_points
+    print(f"Created {len(new_members)} member(s):")
+    for member in new_members:
+        print(member)
 
-    section_weekly_score.total_member_points += difference
-    section_weekly_score.save()
+    print("\nThe following member(s) did not appear on the roster:")
+    for member in Member.objects.exclude(email__in=csv_emails):
+        print(member)
 
-    
+def import_tokens(csv_path="./tokens.csv"):
+    with open(csv_path, newline='') as csvfile:
+        reader = csv.DictReader(csvfile)
+        for row in reader:
+            email = row['email'].strip()
+            
+            try:
+                member = Member.objects.get(email=email)
+            except Member.DoesNotExist:
+                print(f"Skipping: No member with email {email}")
+                continue
+            
+            strava_auth, _ = StravaAuth.objects.update_or_create(
+                member=member,
+                defaults={
+                    'strava_id': int(row['strava id'].strip()),
+                    'access_token': row['access token'].strip(),
+                    'refresh_token': row['refresh token'].strip(),
+                    'token_expires': datetime.fromtimestamp(int(row['token expires'].strip()), tz=timezone.utc),
+                    'scope': row['scope'].strip()
+                }
+            )
+            
+            print(strava_auth)

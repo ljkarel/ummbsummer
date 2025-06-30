@@ -1,30 +1,26 @@
 // react
-import { useState } from "react"
+import { useState } from 'react'
 
 // MUI components
-import Accordion from "@mui/material/Accordion"
-import AccordionSummary from '@mui/material/AccordionSummary'
-import AccordionDetails from "@mui/material/AccordionDetails"
-import Typography from "@mui/material/Typography"
-import Badge from '@mui/material/Badge'
-import Box from '@mui/material/Box'
-import List from '@mui/material/List'
-import ListItem from '@mui/material/ListItem'
-import { styled } from '@mui/material'
+import { 
+  Accordion, 
+  AccordionSummary, 
+  AccordionDetails, 
+  Typography, 
+  Box, 
+  List, 
+  ListItem, 
+  ListItemIcon, 
+  ListItemText, 
+  LinearProgress 
+} from '@mui/material'
 
 // MUI icons
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
+import RegisteredIcon from '@mui/icons-material/CheckCircle'
+import UnregisteredIcon from '@mui/icons-material/Cancel'
 
-
-// custom badge for each section
-const StyledBadge = styled(Badge)(() => ({
-  '& .MuiBadge-badge': {
-    right: -20,
-    top: 12,
-  }
-}))
-
-export default function RegistrationMembers(props) {
+export default function RegistrationMembers({ sections }) {
   const [expanded, setExpanded] = useState(false)
 
   const handleChange = (panel) => (event, newExpanded) => {
@@ -32,30 +28,56 @@ export default function RegistrationMembers(props) {
   }
 
   return (
-    <Box
-      sx={{
-        display: 'flex',
-        flexDirection: 'column',
-      }}
-    >
-      {props.sections.map((section, index) => (
-        <Accordion elevation={3} disableGutters key={index} expanded={expanded === index} onChange={handleChange(index)}>
-          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            <StyledBadge badgeContent={section.members.length} color='primary'>
-                <Typography>{section.name}</Typography>
-            </StyledBadge>
-          </AccordionSummary>
-          <AccordionDetails>
-            <List>
-              {section.members.map((member, index) => (
-                <ListItem key={index}>
-                  <Typography variant='subtitle1'>{member.first_name} {member.last_name}</Typography>
-                </ListItem>
-              ))}
-            </List>   
-          </AccordionDetails>
-        </Accordion>
-      ))}
+    <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+      {sections.map((section, index) => {
+        const total = section.members.length
+        const registered = section.members.filter(m => m.registered).length
+        const progress = (registered / total) * 100
+
+        return (
+          <Accordion
+            elevation={3}
+            disableGutters
+            key={index}
+            expanded={expanded === index}
+            onChange={handleChange(index)}
+          >
+            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+              <Box sx={{ width: '95%' }}>
+                <Typography variant="subtitle1" fontWeight={600}>
+                  {section.name}
+                </Typography>
+                <LinearProgress
+                  variant="determinate"
+                  value={progress}
+                  sx={{ height: 7, borderRadius: 1, my: 0.5 }}
+                />
+                <Typography variant="caption" color="text.secondary">
+                  {registered} of {total} registered
+                </Typography>
+              </Box>
+            </AccordionSummary>
+            <AccordionDetails>
+              <List dense>
+                {section.members.map((member, i) => (
+                  <ListItem key={i}>
+                    <ListItemIcon>
+                      {member.registered ? (
+                        <RegisteredIcon color="success" />
+                      ) : (
+                        <UnregisteredIcon color="error" />                      
+                      )}
+                    </ListItemIcon>
+                    <ListItemText
+                      primary={`${member.name}`}
+                    />
+                  </ListItem>
+                ))}
+              </List>
+            </AccordionDetails>
+          </Accordion>
+        )
+      })}
     </Box>
   );
 }

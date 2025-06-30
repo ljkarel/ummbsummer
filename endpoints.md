@@ -45,20 +45,24 @@ All backend endpoints are prepended with /api
 ### /strava/callback
 
 
+### /members/
+GET: Gets registration information for all sections and members.
+
+### /members/me/
+GET: Gets all information for the logged in member.
+
+### /members/me/preferences/
+GET: Gets preferences for the logged in member.
+PUT: Updates preferences for the logged in member.
+
 ### /activities
-Gets all the activities for the logged in user.
+GET: Gets all activities for the logged in member.
 
+### /metrics/me/?week=<week_number>
+GET: Gets the weekly points for the logged in member. Optionally specify a single week to return.
 
-### /sections
-Gets a list of all sections and their members
+### /metrics/sections/<slug:section_slug>/?week=<week_number>
+GET: Get the weekly section score for section with <section_name>. Optionally specify a single week to return.
 
-### /sections/scores
-Gets the point totals for each section. Can specify a week via query parameter, otherwise return scores for all weeks.
-
-### /sections/<section_name>/scores
-
-### /members/<member_id>
-GET: Gets the member information for the given member
-
-### /members/<member_id>/preferences
-PUT: Updates the user's preferences
+### /metrics/scoreboard/?week=<week_number>
+GET: Get all section scores. Optionally specify a single week to return.

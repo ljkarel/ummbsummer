@@ -1,8 +1,15 @@
 from django.urls import path
-from .views import StravaAuthInit, StravaAuthCallback, StravaWebhooks
+from .views import StravaLoginView, StravaCallbackView, StravaWebhooksView
+
+# urlpatterns = [
+#     path('login/', StravaLoginView.as_view(), name='strava_login'),
+#     path('callback/', StravaCallbackView.as_view(), name='strava_callback'),
+    
+# ]
 
 urlpatterns = [
-    path('login/', StravaAuthInit.as_view(), name='strava_login'),
-    path('callback/', StravaAuthCallback.as_view(), name='strava_callback'),
-    path('webhooks/<str:token>/', StravaWebhooks.as_view(), name='webhooks'),
+    # path('', StravaStatusView.as_view(), name='strava_status'),
+    path('login/', StravaLoginView.as_view(), name='strava_login'),
+    path('callback/', StravaCallbackView.as_view(), name='strava_callback'),
+    path('webhooks/<str:token>/', StravaWebhooksView.as_view(), name='strava_webhooks'),
 ]
