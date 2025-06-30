@@ -1,11 +1,10 @@
-from rest_framework.views import APIView
-from rest_framework.response import Response
+from rest_framework.generics import ListAPIView
 
 from .models import Activity
 from .serializers import ActivitySerializer
 
-class UserActivities(APIView):
-    def get(self, request):
-        activities = Activity.objects.filter(member=request.user.member)
-        serializer = ActivitySerializer(activities, many=True)
-        return Response(serializer.data)
+class MemberActivitiesView(ListAPIView):
+    serializer_class = ActivitySerializer
+
+    def get_queryset(self):
+        return Activity.objects.filter(member=self.request.user.member)

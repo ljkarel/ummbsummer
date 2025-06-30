@@ -1,18 +1,54 @@
-from datetime import timedelta
+import os
+import requests
+from datetime import datetime, timedelta, timezone
 
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils.timezone import now
+from django.utils.text import slugify
 
 
 TOKEN_EXPIRY_BUFFER = timedelta(seconds=60)
 
+# The Strava app's client ID
+CLIENT_ID = os.getenv('STRAVA_CLIENT_ID')
+
+# The Strava app's client secret
+CLIENT_SECRET = os.getenv('STRAVA_CLIENT_SECRET')
+
+# Base Strava API URL
+BASE_URL = 'https://www.strava.com/api/v3'
+
+# URL endpoint for Strava token exchange
+TOKEN_URL = f'{BASE_URL}/oauth/token'
+
 
 class Section(models.Model):
-    name = models.CharField(max_length=50)
+    """Represents a section of the marching band."""
+
+    name = models.CharField(
+        max_length=50,
+        help_text="The name of the section."
+    )
+
+    slug = models.SlugField(
+        unique=True, 
+        blank=True,
+        help_text="URL-safe version of the section name, used in links. Auto-generated if left blank."
+    )
+
+    class Meta:
+        verbose_name = "Section"
+        verbose_name_plural = "Sections"
+        ordering = ['name']
 
     def __str__(self):
         return self.name
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.name)
+        super().save(*args, **kwargs)
 
 
 class Member(models.Model):
@@ -77,6 +113,8 @@ class Member(models.Model):
         return preferred_email or self.email
 
     class Meta:
+        verbose_name = "Member"
+        verbose_name_plural = "Members"
         ordering = ['last_name', 'first_name']
 
 
@@ -106,32 +144,39 @@ class MemberPreferences(models.Model):
     )
 
     nickname = models.CharField(
+        null=True,
+        blank=True,
         max_length=50,
         help_text="The member's chosen nickname, to be displayed instead of their roster name."
     )
 
     preferred_email = models.EmailField(
-        unique=True,
+        null=True,
+        blank=True,
         help_text="The member's preferred contact email."
     )
 
+    class Meta:
+        verbose_name = "Member Preferences"
+        verbose_name_plural = "Member Preferences"
+
     def __str__(self):
-        return f"Preferences data for {self.member.roster_name}"
+        return f"{self.member.roster_name}'s preferences"
 
 
 class StravaAuth(models.Model):
     """Represents Strava access token information for a member, if they have authenticated with Strava."""
-    
+
+    strava_id = models.BigIntegerField(
+        primary_key=True,
+        help_text="The member's Strava athlete ID."
+    )
+
     member = models.OneToOneField(
         Member, 
         on_delete=models.CASCADE, 
         related_name='strava_auth',
         help_text="The member that the access token information belongs to."
-    )
-    
-    strava_id = models.BigIntegerField(
-        primary_key=True,
-        help_text="The member's Strava athlete ID."
     )
     
     access_token = models.CharField(
@@ -157,6 +202,34 @@ class StravaAuth(models.Model):
     def token_expired(self):
         """Checks if the member's Strava access token is expired (or about to expire)."""
         return self.token_expires < now() + TOKEN_EXPIRY_BUFFER
+
+    def get_valid_access_token(self):
+        """Returns a valid Strava access token, refreshing it if necessary."""
+        if self.token_expired:
+            self.refresh_access_token()
+        return self.access_token
     
+    def refresh_access_token(self):
+        """Refreshes the Strava access token using the refresh token."""
+        response = requests.post(TOKEN_URL, data={
+            'client_id': CLIENT_ID,
+            'client_secret': CLIENT_SECRET,
+            'grant_type': 'refresh_token',
+            'refresh_token': self.refresh_token
+        })
+
+        if response.status_code == 200:
+            token_data = response.json()
+            self.access_token = token_data['access_token']
+            self.refresh_token = token_data['refresh_token']
+            self.token_expires = datetime.fromtimestamp(token_data['expires_at'], tz=timezone.utc)
+            self.save()
+        else:
+            raise Exception(f"Failed to refresh Strava token: {response.content}")
+
+    class Meta:
+        verbose_name = "Strava Authorization"
+        verbose_name_plural = "Strava Authorizations"
+
     def __str__(self):
-        return f"Strava authentication data for {self.member.roster_name}"
+        return f"{self.member.roster_name}'s Strava authorization tokens"
