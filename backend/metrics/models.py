@@ -16,8 +16,14 @@ START_DATE = datetime.fromtimestamp(START_DATE_EPOCH_TIME).date()
 def get_current_week():
     return (now().date() - START_DATE).days // 7 + 1
 
-def get_week_for_date(target_datetime: datetime):
-    return (target_datetime.date() - START_DATE).days // 7 + 1
+def get_week_for_datetime(target_datetime: datetime):
+    week = (target_datetime.date() - START_DATE).days // 7 + 1
+
+    if not (1 <= week <= NUM_WEEKS):
+        raise ValueError(f"Week {week} is outside the valid range 1-{NUM_WEEKS}")
+
+    return week 
+
 
 class MemberWeeklyPoints(models.Model):
     """Represents the points that a member has earned within a particular week."""

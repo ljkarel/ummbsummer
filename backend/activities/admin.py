@@ -3,6 +3,7 @@ from .models import Activity
 
 
 class SportTypeListFilter(admin.SimpleListFilter):
+    """Custom filter for sport types. Only shows sport type options that actually appear in the database."""
     title = ('sport type')
     parameter_name = 'sport type'
 
