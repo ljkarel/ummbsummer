@@ -1,0 +1,7 @@
+react-calendar-heatmap for visualizing member activities by day
+strava/custom profile pictures
+mapbox polylines
+mui-x charts for scoreboard
+members can change preferences
+art gallery w/ file upload
+strava webhooks
