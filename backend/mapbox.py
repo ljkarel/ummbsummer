@@ -5,132 +5,164 @@ import polyline
 import random
 
 MAPBOX_ACCESS_TOKEN = "pk.eyJ1IjoibGprYXJlbCIsImEiOiJjbWMzbGVkNHQwNjhqMmlwcGt5NWhnY2NwIn0.hfujlU0Am7zdOGewlhZxQw"
-BASE_URL = "https://api.mapbox.com/styles/v1/mapbox/dark-v11/static/"
+BASE_URL = "https://api.mapbox.com/styles/v1/mapbox/dark-v11/static"
 
-STRAVA_ACCESS_TOKEN = "4362c68e8feaa38d70556664dd9f18494e94e997"
+MAPBOX_PARAMS = {
+    'access_token': MAPBOX_ACCESS_TOKEN,
+    'attribution': 'false',
+    'logo': 'false'
+}
+
+STRAVA_ACCESS_TOKEN = "397e1c0a605395c651d1f3b80b9e3444c818d72b"
+
+R = 6378137 # Earth radius in meters
+
+def mercator_projection(coord):
+    """Converts a geographic coordinate to a Cartesian point."""
+    lat, lon = coord
+    x = R * math.radians(lon)
+    y = R * math.log(math.tan(math.pi / 4 + math.radians(lat) / 2))
+    return (x, y)
+
+def inverse_mercator(point):
+    """Converts a Cartesian point to a geographic coordinate."""
+    x, y = point
+    lon = math.degrees(x / R)
+    lat = math.degrees(2 * math.atan(math.exp(y / R)) - math.pi / 2)
+    return (lat, lon)
+
+def rotate(point, angle_degrees):
+    """Rotates a Cartesian point around a center point."""
+    angle_radians = math.radians(angle_degrees)
+    x, y = point
+
+    # Apply rotation
+    cos_theta = math.cos(angle_radians)
+    sin_theta = math.sin(angle_radians)
+    rx = x * cos_theta - y * sin_theta
+    ry = x * sin_theta + y * cos_theta
+
+    return (rx, ry)
+
+def compute_bbox(points):
+    """Computes the bounding box center of a set of Cartesian points."""
+    xs, ys = zip(*points)
+    return ((min(xs), min(ys)), (max(xs), max(ys)))
+
+def compute_center(min_point, max_point):
+    """Computes the center of a bounding box."""
+    x_min, y_min = min_point
+    x_max, y_max = max_point
+
+    return ((x_min + x_max) / 2, (y_min + y_max) / 2)
+
+def lat_rad(lat):
+    return math.log(math.tan(math.radians(lat) / 2 + math.pi / 4))
+
+def zoom_level(min_coord, max_coord, img_width, img_height, pad_fraction):
+    lat_min, lon_min = min_coord
+    lat_max, lon_max = max_coord
+    
+    pad_x = img_width * pad_fraction
+    pad_y = img_height * pad_fraction
+
+    # Effective size after padding
+    view_w = img_width - 2 * pad_x
+    view_h = img_height - 2 * pad_y
+
+    WORLD_DIM = 512  # baseline tile size in px
+
+    # Longitude span
+    lon_delta = lon_max - lon_min
+    zoom_lon = math.log2((360 * view_w) / (lon_delta * WORLD_DIM))
+
+    # Latitude span (convert to Mercator Y)
+    lat_rad_min = lat_rad(lat_min)
+    lat_rad_max = lat_rad(lat_max)
+    lat_delta = abs(lat_rad_max - lat_rad_min)
+    zoom_lat = math.log2((2 * math.pi * view_h) / (lat_delta * WORLD_DIM))
+
+    return min(zoom_lat, zoom_lon)
+
+
+def createPathString(strokeColor, polyline):
+    url_polyline = quote(polyline, safe='')
+    return f'path-4+{strokeColor}-1({url_polyline})'
+
+def createPinString(color, lat, lon):
+    return f'pin-s+{color}({lon},{lat})'
+
+def createFullUrl(overlays, center_lat, center_lon, zoom, bearing, width, height):
+    overlays = ','.join(overlays)
+    settings = f'{center_lon},{center_lat},{zoom},{bearing}/{width}x{height}'
+    return f'{BASE_URL}/{overlays}/{settings}'
+
+
+def writeBinaryToImageFile(path, content):
+    with open(path, 'wb') as f:
+        f.write(content)
+
+
 
 response = requests.get(
     "https://www.strava.com/api/v3/athlete/activities",
     headers={"Authorization": f"Bearer {STRAVA_ACCESS_TOKEN}"},
 )
 
-data = response.json()
+if response.status_code == 200:
+    activities = response.json()
+else:
+    raise Exception("Unable to get activities. Invalid access token?")
 
 
-def mercator_xy(lat, lon):
-    R = 6378137  # Earth radius in meters (WGS84)
-    x = R * math.radians(lon)
-    y = R * math.log(math.tan(math.pi / 4 + math.radians(lat) / 2))
-    return x, y
-
-def rotate(x, y, cx, cy, angle_deg):
-    angle_rad = math.radians(angle_deg)
-    dx, dy = x - cx, y - cy
-    x_rot = dx * math.cos(angle_rad) - dy * math.sin(angle_rad) + cx
-    y_rot = dx * math.sin(angle_rad) + dy * math.cos(angle_rad) + cy
-    return x_rot, y_rot
-
-
-for i, activity in enumerate(data):
-    if i == 1:
-        break
-    encoded_polyline = activity["map"]["summary_polyline"]
-
-    if encoded_polyline == '': continue
+for i, activity in enumerate(activities[:5]):
+    encoded_polyline = activity['map']['summary_polyline']
+    if not encoded_polyline: continue
 
     coords = polyline.decode(encoded_polyline)
 
-    def lat_rad(lat):
-        lat = math.radians(lat)
-        return math.log(math.tan(lat / 2 + math.pi / 4))
-
-    def zoom_level(bbox, img_width, img_height, pad_fraction):
-        lat_min, lon_min, lat_max, lon_max = bbox
-        pad_x = img_width * pad_fraction
-        pad_y = img_height * pad_fraction
-
-        # Effective size after padding
-        view_w = img_width - 2 * pad_x
-        view_h = img_height - 2 * pad_y
-
-        WORLD_DIM = 512  # baseline tile size in px
-
-        # Longitude span
-        lon_delta = lon_max - lon_min
-        zoom_lon = math.log2((360 * view_w) / (lon_delta * WORLD_DIM))
-
-        # Latitude span (convert to Mercator Y)
-        lat_rad_min = lat_rad(lat_min)
-        lat_rad_max = lat_rad(lat_max)
-        lat_delta = abs(lat_rad_max - lat_rad_min)
-        zoom_lat = math.log2((2 * math.pi * view_h) / (lat_delta * WORLD_DIM))
-
-        return min(zoom_lat, zoom_lon)
-
-
-
-
-    url_polyline = quote(encoded_polyline, safe='')
-
-
-    strokeWidth = 4
-    strokeColor = "039dfc"
-    strokeOpacity = 1
+    # Settings
     width = 300
     height = 300
     padding = 0.05
-    
-    for j in range(0, 360, 45):
-        bearing = j
-        print(bearing)
 
-        # Project all lat/lon to Mercator
-        merc_points = [mercator_xy(lat, lon) for lat, lon in coords]
+    # Convert the polyline into Cartesian points
+    polyline_points = [mercator_projection(coord) for coord in coords]
 
-        # Center point in Mercator space
-        xs, ys = zip(*merc_points)
-        cx = sum(xs) / len(xs)
-        cy = sum(ys) / len(ys)
+    for bearing in range(0, 360, 45):
+        # Rotate the polyline to align with the bearing
+        rotated_polyline_points = [rotate(point, bearing) for point in polyline_points]
 
-        # Rotate all points around center
-        rotated = [rotate(x, y, cx, cy, bearing) for x, y in merc_points]
+        # Get the rotated polyline's bounding box
+        min_point, max_point = compute_bbox(rotated_polyline_points)
 
-        # Compute bounding box of rotated points
-        rot_xs, rot_ys = zip(*rotated)
-        min_x, max_x = min(rot_xs), max(rot_xs)
-        min_y, max_y = min(rot_ys), max(rot_ys)
+        # Get the center of the rotated polyline's bounding box
+        rotated_center = compute_center(min_point, max_point)
 
-        # Invert Mercator to lat/lon (only need for zoom calc)
-        def inverse_mercator(x, y):
-            lon = math.degrees(x / 6378137)
-            lat = math.degrees(2 * math.atan(math.exp(y / 6378137)) - math.pi / 2)
-            return lat, lon
+        # Unrotate the center to get the correct center for the original polyline
+        true_center = rotate(rotated_center, -bearing)
 
-        lat_min, lon_min = inverse_mercator(min_x, min_y)
-        lat_max, lon_max = inverse_mercator(max_x, max_y)
+        # Convert the correct center back into geographic coords
+        true_center_lat, true_center_lon = inverse_mercator(true_center)
 
-        bbox = (lat_min, lon_min, lat_max, lon_max)
-        zoom = zoom_level(bbox, width, height, padding)
+        # Convert the rotated polyline's bounding box back into geographic coords
+        rotated_min_coord = inverse_mercator(min_point)
+        rotated_max_coord = inverse_mercator(max_point)
 
-        center_x = (min_x + max_x) / 2
-        center_y = (min_y + max_y) / 2
+        # Use the bounding box to compute the zoom level
+        zoom = zoom_level(rotated_min_coord, rotated_max_coord, width, height, padding)
 
-        center_lat, center_lon = inverse_mercator(center_x, center_y)
+        overlays = [
+            createPathString("fff", encoded_polyline),
+        ]
 
-        # bbox = (min_lat, min_lon, max_lat, max_lon)
-        # zoom = zoom_level(bbox, width, height, padding)
+        get_url = createFullUrl(overlays, true_center_lat, true_center_lon, zoom, bearing, width, height)
 
-        PATH_STRING = f"path-{strokeWidth}+{strokeColor}-{strokeOpacity}({url_polyline})/{center_lon},{center_lat},{zoom},{bearing}/{width}x{height}"
-
-        params = {
-            'access_token': MAPBOX_ACCESS_TOKEN,
-            'attribution': 'false',
-            'logo': 'false'
-        }
-
-        response = requests.get(BASE_URL + PATH_STRING, params=params)
+        response = requests.get(get_url, params=MAPBOX_PARAMS)
 
         print(response.status_code)
 
-        with open(f'images_test/image{i}_{j}.png', 'wb') as f:
-            f.write(response.content)
+        path = f'images_test/image_{i}_{bearing}_3.png'
+
+        writeBinaryToImageFile(path, response.content)
+            
