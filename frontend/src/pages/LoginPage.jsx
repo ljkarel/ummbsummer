@@ -3,7 +3,7 @@ import frontPage from '../assets/frontPage.jpg';
 import googleSignIn from '../assets/googleSignIn.svg';
 
 import {useAuth } from '../contexts/AuthContext'
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 
 export default function LoginPage() {
@@ -82,13 +82,22 @@ export default function LoginPage() {
             component="img"
             src={googleSignIn}
             alt="Sign in with Google"
-            onClick={login}
+            onClick={() => login(false)}
             sx={{
               width: '80%',
               mt: 2,
               cursor: 'pointer',
             }}
           />
+          <Typography variant="body2" sx={{ mt: 1, color: 'text.secondary' }}>
+            <Link
+              href="#"
+              underline="hover"
+              onClick={() => login(true)}
+            >
+              Non-UMN student login
+            </Link>
+          </Typography>
         </Box>
       </Box>
       <Snackbar

@@ -25,6 +25,7 @@ CLIENT_CONFIG = {
 
 
 def build_flow(state=None):
+    """Creates a Google OAuth 2.0 flow object with the specified state."""
     return Flow.from_client_config(
         client_config=CLIENT_CONFIG,
         scopes=settings.GOOGLE_AUTH['SCOPES'],
@@ -34,6 +35,7 @@ def build_flow(state=None):
 
 
 def redirect_to_login(error=None):
+    """Redirects to the frontend login page. Allows specification of an error."""
     error_param = f'?error={error}' if error else ''
     return redirect(f'{settings.BASE_FRONTEND_URL}/login{error_param}')
 
@@ -82,15 +84,20 @@ class GoogleAuthInitView(APIView):
             user = User.objects.get(username='admin')
             login(request, user)
             return redirect(settings.BASE_FRONTEND_URL)
-
-         # Create an OAuth 2.0 flow using the client configuration and desired scopes
+        
+        # Create an OAuth 2.0 flow using the client configuration and desired scopes
         flow = build_flow()
 
+        # Check if the request has a bypass_hd parameter to allow login from any Google account
+        bypass_hd = request.GET.get('bypass_hd', '').lower() == 'true'
+
+        auth_url_kwargs = {
+            'include_granted_scopes': 'true',
+            'hd': settings.GOOGLE_AUTH['HD'] if not bypass_hd else None  # Restrict login to users in specified Google domain (e.g. 'umn.edu')
+        }
+
         # Generate the Google authorization URL and session state token
-        auth_url, state = flow.authorization_url(
-            include_granted_scopes='true',
-            hd=settings.GOOGLE_AUTH['HD']  # Restrict login to users in specified Google domain (e.g. 'umn.edu')
-        )
+        auth_url, state = flow.authorization_url(**auth_url_kwargs)
 
         # Store the state token in the session to validate the response later
         request.session['google_auth_state'] = state

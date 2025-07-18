@@ -102,7 +102,6 @@ def createFullUrl(overlays, center_lat, center_lon, zoom, bearing, width, height
 def generate_map(encoded_polyline, color="5c2c34", rotation=0, width=500, height=500):
     """Uses the Mapbox API to generate a map with specific parameters."""
 
-    print(MAPBOX_ACCESS_TOKEN)
     # Decode the polyline into geographic coordinates
     polyline_coords = polyline.decode(encoded_polyline)
 

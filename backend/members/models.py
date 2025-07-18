@@ -41,6 +41,7 @@ class Section(models.Model):
         verbose_name = "Section"
         verbose_name_plural = "Sections"
         ordering = ['name']
+        db_table = 'section'
 
     def __str__(self):
         return self.name
@@ -116,6 +117,7 @@ class Member(models.Model):
         verbose_name = "Member"
         verbose_name_plural = "Members"
         ordering = ['last_name', 'first_name']
+        db_table = 'member'
 
 
     def __str__(self):
@@ -159,6 +161,7 @@ class MemberPreferences(models.Model):
     class Meta:
         verbose_name = "Member Preferences"
         verbose_name_plural = "Member Preferences"
+        db_table = 'member_preferences'
 
     def __str__(self):
         return f"{self.member.roster_name}'s preferences"
@@ -230,6 +233,7 @@ class StravaAuth(models.Model):
     class Meta:
         verbose_name = "Strava Authorization"
         verbose_name_plural = "Strava Authorizations"
+        db_table = 'strava_auth'
 
     def __str__(self):
         return f"{self.member.roster_name}'s Strava authorization tokens"

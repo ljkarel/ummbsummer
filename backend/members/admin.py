@@ -24,6 +24,7 @@ class MemberAdmin(admin.ModelAdmin):
     def update_activities(self, request, queryset):
         success_count = 0
         missing_auth_count = 0
+        failed_members = []
 
         for member in queryset:
             try:
@@ -32,6 +33,7 @@ class MemberAdmin(admin.ModelAdmin):
             except Member.strava_auth.RelatedObjectDoesNotExist:
                 missing_auth_count += 1
             except Exception as e:
+                failed_members.append(member)
                 tb = traceback.format_exc()
                 self.message_user(request, f"Failed to update {member}: {e}\n{tb}", level='error')
 
@@ -41,7 +43,11 @@ class MemberAdmin(admin.ModelAdmin):
         if missing_auth_count:
             self.message_user(request, f"Skipped {missing_auth_count} member(s) — no Strava authorization found.", level='info')
 
-    actions = (update_activities,)
+        if failed_members:
+            names = ', '.join(str(member) for member in failed_members)
+            self.message_user(request, f"Failed to update the following member(s): {names}", level='error')
+
+    actions = ('update_activities',)
 
 
 @admin.register(MemberPreferences)

@@ -1,4 +1,4 @@
-from django.db.models.signals import pre_save, post_save, pre_delete
+from django.db.models.signals import pre_save, post_save, pre_delete, post_delete
 from django.dispatch import receiver
 from django.utils.timezone import localtime
 
@@ -68,3 +68,8 @@ def update_weekly_minutes_on_delete(sender, instance, **kwargs):
         update_or_delete_mwp(mwp, mwp.minutes - instance.minutes)
     except MemberWeeklyPoints.DoesNotExist:
         pass
+
+@receiver(post_delete, sender=Activity)
+def delete_activity_image_file(sender, instance, **kwargs):
+    if instance.map_image:
+        instance.map_image.delete(save=False)

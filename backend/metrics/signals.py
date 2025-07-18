@@ -1,8 +1,7 @@
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
-from django.utils.timezone import now
 
-from .models import MemberWeeklyPoints, SectionWeeklyScore, get_week_for_datetime
+from .models import MemberWeeklyPoints
 
 from .utils import recompute_sws
 

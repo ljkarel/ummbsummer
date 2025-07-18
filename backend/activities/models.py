@@ -84,6 +84,7 @@ class Activity(models.Model):
         verbose_name = "Activity"
         verbose_name_plural = "Activities"
         ordering = ['-datetime']
+        db_table = 'activity'
 
     def __str__(self):
         return f"{self.member} on {self.datetime.strftime('%b %d')}: {self.minutes} min {self.sport_type}"

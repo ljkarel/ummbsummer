@@ -20,8 +20,8 @@ export function AuthProvider({ children }) {
       .finally(() => setLoading(false));
   }, []);
 
-  const login = () => {
-    window.location.href = `${BASE_URL}/api/auth/init/`;
+  const login = (bypass_hd=false) => {
+    window.location.href = `${BASE_URL}/api/auth/init/?bypass_hd=${bypass_hd}`;
   };
 
   const logout = () => {

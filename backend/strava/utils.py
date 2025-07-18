@@ -1,12 +1,9 @@
 import os
 import requests
-from datetime import datetime, timezone
 from dateutil.parser import parse
 
-from members.models import Member, StravaAuth
+from members.models import Member
 from activities.models import Activity
-from activities.serializers import ActivitySerializer
-from django.db import transaction
 
 
 # The Strava app's client ID
@@ -90,7 +87,8 @@ def member_in_club(member: Member):
         
         clubs = response.json()
 
-        if not clubs: return False
+        if not clubs: 
+            return False
 
         if any(club.get('id') == CLUB_ID for club in clubs):
             return True
