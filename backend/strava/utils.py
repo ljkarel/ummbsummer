@@ -15,6 +15,9 @@ CLIENT_ID = os.getenv('STRAVA_CLIENT_ID')
 # The Strava app's client secret
 CLIENT_SECRET = os.getenv('STRAVA_CLIENT_SECRET')
 
+# The Strava club ID
+CLUB_ID = int(os.getenv('STRAVA_CLUB_ID'))
+
 # The epoch time of the start date for pulling activities
 START_DATE = os.getenv('START_DATE_EPOCH_TIME')
 
@@ -30,8 +33,9 @@ TOKEN_URL = f'{BASE_URL}/oauth/token'
 # URL endpoint for Strava deauthorization
 DEAUTH_URL = f'{BASE_URL}/oauth/deauthorize'
 
-# URL endpoint for Strava activity GET requests
-ACTIVITIES_URL = f'{BASE_URL}/athlete/activities'
+ATHLETE_URL = f'{BASE_URL}/athlete'
+ACTIVITIES_URL = f'{ATHLETE_URL}/activities'
+CLUBS_URL = f'{ATHLETE_URL}/clubs'
 
 
 def meters_to_miles(meters):
@@ -65,6 +69,44 @@ def deauthorize(access_token):
     requests.post(DEAUTH_URL, data={
         'access_token': access_token
     })
+
+
+def member_in_club(member: Member):
+    access_token = member.strava_auth.get_valid_access_token()
+    headers = {'Authorization': f'Bearer {access_token}'}
+
+    current_page = 1
+    page_size = 200
+
+    while True:
+        params = {
+            'page': current_page,
+            'per_page': page_size,
+        }
+
+        response = requests.get(CLUBS_URL, headers=headers, params=params)
+        if response.status_code != 200:
+            raise Exception(f"Strava API error: {response.status_code} - {response.text}")
+        
+        clubs = response.json()
+
+        if not clubs: return False
+
+        if any(club.get('id') == CLUB_ID for club in clubs):
+            return True
+        
+        current_page += 1
+
+def get_profile_picture(member: Member):
+    access_token = member.strava_auth.get_valid_access_token()
+    headers = {'Authorization': f'Bearer {access_token}'}
+
+    response = requests.get(ATHLETE_URL, headers=headers)
+    if response.status_code != 200:
+        raise Exception(f"Strava API error: {response.status_code} - {response.text}")
+    
+    data = response.json()
+    return data.get('profile')
 
 
 def update_all_member_activities():

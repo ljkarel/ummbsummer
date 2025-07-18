@@ -10,7 +10,7 @@ export function AuthProvider({ children }) {
   // Get current user
   useEffect(() => {
     api
-      .get('/auth/', { withCredentials: true})
+      .get('/auth/', { withCredentials: true })
       .then((res) => setUser(res.data))
       .catch((err) => {
         if (err.response?.status !== 403) {
@@ -21,11 +21,12 @@ export function AuthProvider({ children }) {
   }, []);
 
   const login = () => {
-    window.location.href = `${BASE_URL}/api/auth/login/`;
+    window.location.href = `${BASE_URL}/api/auth/init/`;
   };
 
   const logout = () => {
     setUser(null);
+    api.post('/auth/logout/', null, { withCredentials: true });
   };
 
   return (

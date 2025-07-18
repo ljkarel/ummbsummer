@@ -1,8 +1,11 @@
-import { Box, Typography, Container } from '@mui/material'
+import { Box, Typography, Container, Button } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
 
 export default function NotFound() {
+  const navigate = useNavigate();
+
   return (
-    <Container maxWidth='sm'>
+    <Container maxWidth="sm">
       <Box
         sx={{
           display: 'flex',
@@ -13,13 +16,17 @@ export default function NotFound() {
           textAlign: 'center',
         }}
       >
-        <Typography variant='h3' gutterBottom>
+        <Typography variant="h3" gutterBottom>
           404 - Not Found
         </Typography>
-        <Typography variant="body1">
+        <Typography variant="body1" sx={{ mb: 3 }}>
           Sorry, the page you are looking for does not exist.
         </Typography>
-      </Box>    
+
+        <Button variant="contained" color="primary" onClick={() => navigate('/')}>
+          Go Home
+        </Button>
+      </Box>
     </Container>
-  )
+  );
 }

@@ -2,9 +2,9 @@ from django.db.models.signals import pre_save, post_save, pre_delete
 from django.dispatch import receiver
 from django.utils.timezone import localtime
 
+
 from .models import Activity
 from metrics.models import MemberWeeklyPoints, get_week_for_datetime
-
 
 def update_or_delete_mwp(mwp, new_minutes):
     mwp.minutes = max(0, new_minutes)
@@ -15,7 +15,7 @@ def update_or_delete_mwp(mwp, new_minutes):
 
 
 @receiver(pre_save, sender=Activity)
-def cache_old_minutes(sender, instance, **kwargs):
+def cache_old_activity_details(sender, instance, **kwargs):
     """Stores temporary information in the activity instance, indicating its old minutes and week."""
     try:
         old = Activity.objects.get(pk=instance.pk)

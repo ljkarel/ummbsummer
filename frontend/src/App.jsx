@@ -1,12 +1,13 @@
-import './App.css'
-
 import { Box, ThemeProvider } from '@mui/material';
 import Theme from './components/Themes';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 
 export default function App() {
+  const location = useLocation();
+  const hideLayout = location.pathname.replace(/\/$/, '') === '/login';
+
   return (
     <ThemeProvider theme={Theme}>
       <Box
@@ -14,12 +15,13 @@ export default function App() {
           display: 'flex',
           flexDirection: 'column',
           minHeight: '100vh',
-        }}>
-        <Navbar />
+        }}
+      >
+        {!hideLayout && <Navbar />}
         <Box sx={{flexGrow: 1}}>
           <Outlet />
         </Box>
-        <Footer />
+        {!hideLayout && <Footer />}
       </Box>
     </ThemeProvider>
   )

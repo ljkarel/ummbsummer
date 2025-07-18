@@ -20,22 +20,20 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Load .env file
 load_dotenv(find_dotenv())
 
-
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
-
-# SECURITY WARNING: keep the secret key used in production secret!
+# Django secret key
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY')
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
 
 STATIC_ROOT = '/var/www/ummbsummer/static'
 
 
-# TODO: Check if this is needed
-SESSION_COOKIE_SAMESITE = 'None'
-SESSION_COOKIE_SECURE = True
+# With DEBUG = True (development):
+#   Backend URL:  http://localhost:8000
+#   Frontend URL: http://localhost:5173
+# 
+# With DEBUG = False (production):
+#   Backend/Frontend URL: https://ummbsummer.com 
+DEBUG = True
 
 LOCAL_BACKEND_URL = 'http://localhost:8000'
 LOCAL_FRONTEND_URL = 'http://localhost:5173'
@@ -48,10 +46,29 @@ BASE_FRONTEND_URL = LOCAL_FRONTEND_URL if DEBUG else PRODUCTION_URL
 ALLOWED_HOSTS = ['localhost'] if DEBUG else ['ummbsummer.com']
 
 CORS_ALLOWED_ORIGINS = [LOCAL_FRONTEND_URL] if DEBUG else [PRODUCTION_URL]
+CSRF_TRUSTED_ORIGINS = [LOCAL_FRONTEND_URL] if DEBUG else [PRODUCTION_URL]
 
 CORS_ALLOW_CREDENTIALS = True
 
-CSRF_TRUSTED_ORIGINS = [LOCAL_FRONTEND_URL] if DEBUG else [PRODUCTION_URL]
+# TODO: Check if this is needed
+SESSION_COOKIE_SAMESITE = 'None'
+SESSION_COOKIE_SECURE = True
+
+
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+GOOGLE_AUTH = {
+    'CLIENT_ID': os.getenv('GOOGLE_CLIENT_ID'),
+    'CLIENT_SECRET': os.getenv('GOOGLE_CLIENT_SECRET'),
+    'REDIRECT_URI': f'{BASE_BACKEND_URL}/api/auth/callback',
+    'HD': 'umn.edu',
+    'SCOPES': ['openid', 'https://www.googleapis.com/auth/userinfo.email']
+}
+
+STRAVA_AUTH = {
+    
+}
+
 
 # Application definition
 
@@ -68,7 +85,8 @@ INSTALLED_APPS = [
     'activities',
     'strava',
     'google_auth',
-    'metrics'
+    'metrics',
+    'art',
 ]
 
 MIDDLEWARE = [

@@ -13,7 +13,7 @@ class SectionWeeklyScoreAdmin(admin.ModelAdmin):
         for sws in queryset:
             recompute_sws(sws.section, sws.week, force=True)
     
-    actions = 'update_sws'
+    actions = (update_sws,)
 
 
 @admin.register(MemberWeeklyPoints)

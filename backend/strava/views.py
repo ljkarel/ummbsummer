@@ -11,8 +11,9 @@ from django.utils.decorators import method_decorator
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from rest_framework.exceptions import NotFound
 
-from .api import valid_scope, token_exchange
+from .utils import valid_scope, token_exchange, member_in_club, get_profile_picture
 from members.models import StravaAuth
 
 from django.conf import settings
@@ -27,16 +28,56 @@ CLIENT_ID = os.getenv('STRAVA_CLIENT_ID')
 OAUTH_URL = f'https://www.strava.com/oauth/authorize'
 
 
-FRONTEND_REDIRECT = f'{settings.BASE_FRONTEND_URL}?registration_complete=true'
 
-class StravaLoginView(APIView):
+class StravaStatusView(APIView):
+    """
+    Returns the Strava registration status and related info for the currently authenticated user.
+
+    ### Permitted methods:
+    - GET: Returns whether the user is registered with Strava and includes related metadata if applicable.
+    """
+        
+    def get(self, request):
+        user = request.user
+
+        # Try to get the Strava auth associated with the user, if any
+        member = getattr(user, 'member', None)
+
+        # If a member exists, check if they have connected their Strava account
+        strava_auth = getattr(member, 'strava_auth', None) if member else None
+
+        if strava_auth:
+            # Member is registered, return Strava info
+            return Response({
+                'registered': True,
+                'strava_id': strava_auth.strava_id,
+                'scope': strava_auth.scope,
+                'in_club': member_in_club(member),
+                'profile_picture': get_profile_picture(member)
+            })
+        
+        if not member and not (user.is_staff or user.is_superuser):
+            # No member exists and user is not admin, raise error
+            raise NotFound("Member not found.")
+        
+        # Member is not registered or user is admin with no member
+        return Response({ 'joined': False })
+
+
+class StravaInitView(APIView):
+    """
+    View that initializes the Strava OAuth 2.0 flow.
+
+    ### Permitted methods:
+    - GET: Redirects the user to the Strava OAuth 2.0 endpoint.
+    """
+
     def get(self, request):
         params = {
             'client_id': CLIENT_ID,
             'response_type': 'code',
             'redirect_uri': request.build_absolute_uri(reverse('strava_callback')),
             'scope': 'activity:read,activity:read_all',
-            'approval_prompt': 'auto'
         }
 
         return redirect(f'{OAUTH_URL}?{urlencode(params)}')
@@ -44,8 +85,6 @@ class StravaLoginView(APIView):
 
 class StravaCallbackView(APIView):
     def get(self, request):
-        print(request.user)
-
         code = request.GET.get('code')
         scope = request.GET.get('scope')
         error = request.GET.get('error')
@@ -75,7 +114,7 @@ class StravaCallbackView(APIView):
         member.strava_auth = strava_auth
         member.save()
 
-        return redirect(FRONTEND_REDIRECT)
+        return redirect(f'{settings.BASE_FRONTEND_URL}/registration?registration_complete=true')
 
 
 

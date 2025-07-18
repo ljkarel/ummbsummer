@@ -1,7 +1,9 @@
 from django.db import models
+from django.core.files.base import ContentFile
 
 from .enums import SportType
 from members.models import Member
+from .mapbox import generate_map
 
 
 class Activity(models.Model):
@@ -60,7 +62,7 @@ class Activity(models.Model):
 
     polyline = models.TextField(
         blank=True, 
-        null=True,
+        default='',
         help_text="The encoded polyline representing the GPS route (if applicable)."
     )
 
@@ -72,6 +74,12 @@ class Activity(models.Model):
         help_text="Whether the activity is marked as private."
     )
 
+    map_image = models.ImageField(
+        upload_to='activity_maps/',
+        blank=True,
+        null=True
+    )
+
     class Meta:
         verbose_name = "Activity"
         verbose_name_plural = "Activities"
@@ -79,3 +87,36 @@ class Activity(models.Model):
 
     def __str__(self):
         return f"{self.member} on {self.datetime.strftime('%b %d')}: {self.minutes} min {self.sport_type}"
+    
+    def save(self, *args, **kwargs):
+        old_map = None # The activity's old map
+        old_polyline = None # The activity's old polyline
+
+        # Try to get the old instance's map and polyline to compare values
+        try:
+            old = Activity.objects.get(pk=self.pk)
+            old_polyline = old.polyline
+            old_map = old.map_image
+        except Activity.DoesNotExist:
+            pass  # New instance
+
+        polyline_changed = old_polyline != self.polyline
+        map_missing = self.polyline and not self.map_image
+        update_map = polyline_changed or map_missing
+
+        if not update_map:
+            return super().save(*args, **kwargs)
+        
+        if old_map:
+            old_map.delete(save=False)
+
+        if not self.polyline:
+            self.map_image = None
+            return super().save(*args, **kwargs)
+        
+        image_bytes = generate_map(self.polyline)
+        if image_bytes:
+            filename = f'activity_{self.activity_id}.png'
+            self.map_image.save(filename, ContentFile(image_bytes), save=False)
+
+        super().save(*args, **kwargs)

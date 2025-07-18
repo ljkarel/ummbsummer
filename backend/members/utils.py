@@ -41,6 +41,7 @@ def import_roster(csv_path="./roster.csv"):
     for member in Member.objects.exclude(email__in=csv_emails):
         print(member)
 
+
 def import_tokens(csv_path="./tokens.csv"):
     with open(csv_path, newline='') as csvfile:
         reader = csv.DictReader(csvfile)
@@ -53,15 +54,26 @@ def import_tokens(csv_path="./tokens.csv"):
                 print(f"Skipping: No member with email {email}")
                 continue
             
-            strava_auth, _ = StravaAuth.objects.update_or_create(
-                member=member,
-                defaults={
-                    'strava_id': int(row['strava id'].strip()),
-                    'access_token': row['access token'].strip(),
-                    'refresh_token': row['refresh token'].strip(),
-                    'token_expires': datetime.fromtimestamp(int(row['token expires'].strip()), tz=timezone.utc),
-                    'scope': row['scope'].strip()
-                }
-            )
-            
-            print(strava_auth)
+            new_expires = datetime.fromtimestamp(int(row['token expires'].strip()), tz=timezone.utc)
+            try:
+                strava_auth = StravaAuth.objects.get(member=member)
+                if new_expires > strava_auth.token_expires:
+                    strava_auth.strava_id = int(row['strava id'].strip())
+                    strava_auth.access_token = row['access token'].strip()
+                    strava_auth.refresh_token = row['refresh token'].strip()
+                    strava_auth.token_expires = new_expires
+                    strava_auth.scope = row['scope'].strip()
+                    strava_auth.save()
+                    print(f"Updated: {strava_auth}")
+                else:
+                    print(f"Skipped (newer token already exists): {email}")
+            except StravaAuth.DoesNotExist:
+                strava_auth = StravaAuth.objects.create(
+                    member=member,
+                    strava_id=int(row['strava id'].strip()),
+                    access_token=row['access token'].strip(),
+                    refresh_token=row['refresh token'].strip(),
+                    token_expires=new_expires,
+                    scope=row['scope'].strip()
+                )
+                print(f"Created: {strava_auth}")

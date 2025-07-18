@@ -1,8 +1,9 @@
 from django.contrib import admin
 
-from strava.api import update_member_activities
+from strava.utils import update_member_activities
 from .models import Section, Member, MemberPreferences, StravaAuth
 
+import traceback
 
 @admin.register(Section)
 class SectionAdmin(admin.ModelAdmin):
@@ -11,8 +12,6 @@ class SectionAdmin(admin.ModelAdmin):
     @admin.display(description='Member Count')
     def member_count(self, section):
         return section.members.count()
-    
-
 
 
 @admin.register(Member)
@@ -25,7 +24,6 @@ class MemberAdmin(admin.ModelAdmin):
     def update_activities(self, request, queryset):
         success_count = 0
         missing_auth_count = 0
-        other_failures = []
 
         for member in queryset:
             try:
@@ -34,7 +32,8 @@ class MemberAdmin(admin.ModelAdmin):
             except Member.strava_auth.RelatedObjectDoesNotExist:
                 missing_auth_count += 1
             except Exception as e:
-                self.message_user(request, f"Failed to update {member}: {e}", level='error')
+                tb = traceback.format_exc()
+                self.message_user(request, f"Failed to update {member}: {e}\n{tb}", level='error')
 
         if success_count:
             self.message_user(request, f"Successfully updated {success_count} member(s).")

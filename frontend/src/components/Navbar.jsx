@@ -91,7 +91,7 @@ export default function Navbar() {
         </Box>
         
         <Box sx={{display: {xs: 'none', lg: 'flex'}}}>
-          <NavbarButton text='Registration' to='/' startIcon={<RegisterIcon />} />
+          <NavbarButton text='Registration' to='/registration' startIcon={<RegisterIcon />} />
           <NavbarButton text='My Activities' to='/activities' startIcon={<MyActivitiesIcon />} />
         </Box>
       </ToolBar>

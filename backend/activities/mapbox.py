@@ -5,7 +5,7 @@ from urllib.parse import quote
 import polyline
 
 MAPBOX_ACCESS_TOKEN = os.getenv("MAPBOX_ACCESS_TOKEN")
-BASE_URL = "https://api.mapbox.com/styles/v1/mapbox/dark-v11/static"
+BASE_URL = "https://api.mapbox.com/styles/v1/ljkarel/cmcpnrr5j00l301s4f03710ft/static"
 
 MAPBOX_PARAMS = {
     'access_token': MAPBOX_ACCESS_TOKEN,
@@ -69,12 +69,17 @@ def zoom_level(min_coord, max_coord, img_width, img_height):
 
     # Longitude span
     lon_delta = lon_max - lon_min
-    zoom_lon = math.log2((360 * view_w) / (lon_delta * WORLD_DIM))
-
+    if lon_delta == 0:
+        raise ValueError("Longitude delta is zero")
+    
     # Latitude span (convert to Mercator Y)
     lat_rad_min = math.log(math.tan(math.radians(lat_min) / 2 + math.pi / 4))
     lat_rad_max = math.log(math.tan(math.radians(lat_max) / 2 + math.pi / 4))
     lat_delta = abs(lat_rad_max - lat_rad_min)
+    if lat_delta == 0:
+        raise ValueError("Latitude delta is zero")
+
+    zoom_lon = math.log2((360 * view_w) / (lon_delta * WORLD_DIM))
     zoom_lat = math.log2((2 * math.pi * view_h) / (lat_delta * WORLD_DIM))
 
     return min(zoom_lat, zoom_lon)
@@ -82,7 +87,7 @@ def zoom_level(min_coord, max_coord, img_width, img_height):
 def createPathString(strokeColor, polyline):
     """Creates a path URL string."""
     url_polyline = quote(polyline, safe='')
-    return f'path-4+{strokeColor}-1({url_polyline})'
+    return f'path-6+{strokeColor}-1({url_polyline})'
 
 def createPinString(color, lat, lon):
     """Creates a pin URL string."""
@@ -94,16 +99,17 @@ def createFullUrl(overlays, center_lat, center_lon, zoom, bearing, width, height
     settings = f'{center_lon},{center_lat},{zoom},{bearing}/{width}x{height}'
     return f'{BASE_URL}/{overlays}/{settings}'
 
-def writeBinaryToImageFile(path, content):
-    """Outputs binary image content to a specified file."""
-    with open(path, 'wb') as f:
-        f.write(content)
+def generate_map(encoded_polyline, color="5c2c34", rotation=0, width=500, height=500):
+    """Uses the Mapbox API to generate a map with specific parameters."""
 
-def generate_strava_art(encoded_polyline, output_path, color="fff", rotation=0, width=300, height=300):
-    """Uses the Mapbox API to generate an artwork with specific parameters."""
-
+    print(MAPBOX_ACCESS_TOKEN)
     # Decode the polyline into geographic coordinates
     polyline_coords = polyline.decode(encoded_polyline)
+
+    if len(polyline_coords) <= 2:
+        lat, lon = polyline_coords[0]
+        offset = 0.0001
+        polyline_coords.append((lat + offset, lon + offset))
 
     # Convert the polyline into Cartesian points
     polyline_points = [mercator_projection(coord) for coord in polyline_coords]
@@ -128,7 +134,11 @@ def generate_strava_art(encoded_polyline, output_path, color="fff", rotation=0, 
     rotated_max_coord = inverse_mercator(max_point)
 
     # Use the bounding box to compute the zoom level
-    zoom = zoom_level(rotated_min_coord, rotated_max_coord, width, height)
+    try:
+        zoom = zoom_level(rotated_min_coord, rotated_max_coord, width, height)
+    except ValueError as e:
+        print(f"[generate_map] Error: {e} for polyline: {encoded_polyline}")
+        raise
 
     overlays = [createPathString(color, encoded_polyline)]
 
@@ -136,6 +146,6 @@ def generate_strava_art(encoded_polyline, output_path, color="fff", rotation=0, 
 
     response = requests.get(request_url, params=MAPBOX_PARAMS)
     if not response.ok:
-        return RuntimeError(f"Mapbox error {response.status_code}: {response.text}")
-
-    writeBinaryToImageFile(output_path, response.content)
+        # return None
+        raise RuntimeError(f"Mapbox error {response.status_code}: {response.text}")
+    return response.content

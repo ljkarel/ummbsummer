@@ -40,5 +40,8 @@ class WeeklyScoreboardView(APIView):
         if week:
             scores_qs = scores_qs.filter(week=week)
         
-        serializer = SectionWeeklyScoreSerializer(scores_qs.order_by('week', '-rank_score'), many=True)
+        scores = list(scores_qs)  # Evaluate queryset
+        scores.sort(key=lambda s: s.score, reverse=True)  # Sort by property in Python
+
+        serializer = SectionWeeklyScoreSerializer(scores, many=True)
         return Response(serializer.data)

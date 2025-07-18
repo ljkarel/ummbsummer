@@ -12,7 +12,8 @@ import {
   ListItem, 
   ListItemIcon, 
   ListItemText, 
-  LinearProgress 
+  LinearProgress,
+  Paper
 } from '@mui/material'
 
 // MUI icons
@@ -20,7 +21,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import RegisteredIcon from '@mui/icons-material/CheckCircle'
 import UnregisteredIcon from '@mui/icons-material/Cancel'
 
-export default function RegistrationMembers({ sections }) {
+export default function RegistrationMembers({ sections, scroll }) {
   const [expanded, setExpanded] = useState(false)
 
   const handleChange = (panel) => (event, newExpanded) => {
@@ -28,17 +29,35 @@ export default function RegistrationMembers({ sections }) {
   }
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+    <Paper
+      elevation={3}
+      sx={{
+        maxHeight: scroll ? '75vh' : 'none',
+        overflowY: scroll ? 'auto' : 'visible',
+        borderRadius: 2,
+        '&::-webkit-scrollbar': {
+          width: '8px',
+        },
+        '&::-webkit-scrollbar-track': {
+          background: 'transparent',
+          marginTop: '4px',
+          marginBottom: '4px',
+        },
+        '&::-webkit-scrollbar-thumb': {
+          backgroundColor: '#aaa',
+          borderRadius: '4px',
+        },
+      }}
+    >
       {sections.map((section, index) => {
-        const total = section.members.length
-        const registered = section.members.filter(m => m.registered).length
-        const progress = (registered / total) * 100
+        const total = section.members.length;
+        const registered = section.members.filter(m => m.registered).length;
+        const progress = (registered / total) * 100;
 
         return (
           <Accordion
-            elevation={3}
-            disableGutters
             key={index}
+            disableGutters
             expanded={expanded === index}
             onChange={handleChange(index)}
           >
@@ -65,19 +84,17 @@ export default function RegistrationMembers({ sections }) {
                       {member.registered ? (
                         <RegisteredIcon color="success" />
                       ) : (
-                        <UnregisteredIcon color="error" />                      
+                        <UnregisteredIcon color="error" />
                       )}
                     </ListItemIcon>
-                    <ListItemText
-                      primary={`${member.name}`}
-                    />
+                    <ListItemText primary={member.name} />
                   </ListItem>
                 ))}
               </List>
             </AccordionDetails>
           </Accordion>
-        )
+        );
       })}
-    </Box>
+    </Paper>
   );
 }

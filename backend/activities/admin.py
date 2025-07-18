@@ -23,9 +23,8 @@ class SportTypeListFilter(admin.SimpleListFilter):
             return queryset.filter(sport_type=self.value())
         return queryset
 
-
 @admin.register(Activity)
 class ActivityAdmin(admin.ModelAdmin):
     list_display = ('member', 'name', 'distance', 'minutes', 'sport_type', 'datetime', 'manual', 'private')
-    search_fields = ('member__first_name', 'member__last_name', 'member__email', 'member__preferences__nickname', 'name')
+    search_fields = ('activity_id', 'member__first_name', 'member__last_name', 'member__email', 'member__preferences__nickname', 'name')
     list_filter = (SportTypeListFilter, 'manual', 'private')
