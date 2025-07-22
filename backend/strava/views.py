@@ -5,16 +5,16 @@ from urllib.parse import urlencode
 from django.urls import reverse
 from django.shortcuts import redirect
 
-# from django.views.decorators.csrf import csrf_exempt
-# from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
 
-# from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.exceptions import NotFound
+from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
 
 from .utils import valid_scope, token_exchange, member_in_club, get_profile_picture
 from members.models import StravaAuth
+from .tasks import process_strava_webhook
 
 from django.conf import settings
 
@@ -26,7 +26,6 @@ WEBHOOK_SUBSCRIPTION_ID = os.getenv('STRAVA_WEBHOOK_SUBSCRIPTION_ID')
 CLIENT_ID = os.getenv('STRAVA_CLIENT_ID')
 
 OAUTH_URL = 'https://www.strava.com/oauth/authorize'
-
 
 
 class StravaStatusView(APIView):
@@ -118,37 +117,36 @@ class StravaCallbackView(APIView):
 
 
 
-# @method_decorator(csrf_exempt, name='dispatch')
-# class StravaWebhooksView(APIView):
-#     authentication_classes = []
-#     permission_classes = []
+@method_decorator(csrf_exempt, name='dispatch')
+class StravaWebhooksView(APIView):
+    authentication_classes = []
+    permission_classes = []
 
-#     def get(self, request, token):
-#         if token != WEBHOOK_VERIFY_TOKEN:
-#             return Response(status=status.HTTP_401_UNAUTHORIZED)
+    def get(self, request, token):
+        if token != WEBHOOK_ENDPOINT_TOKEN:
+            raise NotFound()
 
-#         mode = request.GET.get('hub.mode')
-#         challenge = request.GET.get('hub.challenge')
-#         verify_token = request.GET.get('hub.verify_token')
+        mode = request.GET.get('hub.mode')
+        challenge = request.GET.get('hub.challenge')
+        verify_token = request.GET.get('hub.verify_token')
 
-#         if mode != 'subscribe' or not challenge:
-#             return Response(status=status.HTTP_400_BAD_REQUEST)
+        if mode != 'subscribe' or not challenge:
+            raise ValidationError("Missing or invalid mode/challenge.")
         
-#         if verify_token != WEBHOOK_VERIFY_TOKEN:
-#             return Response(status=status.HTTP_401_UNAUTHORIZED)
+        if verify_token != WEBHOOK_VERIFY_TOKEN:
+            raise PermissionDenied("Invalid verification token.")
 
-#         return Response({"hub.challenge": challenge}, status=status.HTTP_200_OK)
+        return Response({"hub.challenge": challenge})
     
-#     def post(self, request, token):
-#         if token != WEBHOOK_VERIFY_TOKEN:
-#             return Response(status=status.HTTP_401_UNAUTHORIZED)
+    def post(self, request, token):
+        if token != WEBHOOK_ENDPOINT_TOKEN:
+            raise NotFound()
 
-#         data = request.data
+        if request.data['subscription_id'] != int(WEBHOOK_SUBSCRIPTION_ID):
+            raise PermissionDenied("Invalid subscription ID.")
         
-        
-
-
-#         return Response(status=status.HTTP_200_OK)
+        process_strava_webhook.delay(request.data)
+        return Response()
 
 
         

@@ -105,11 +105,6 @@ def generate_map(encoded_polyline, color="5c2c34", rotation=0, width=500, height
     # Decode the polyline into geographic coordinates
     polyline_coords = polyline.decode(encoded_polyline)
 
-    if len(polyline_coords) <= 2:
-        lat, lon = polyline_coords[0]
-        offset = 0.0001
-        polyline_coords.append((lat + offset, lon + offset))
-
     # Convert the polyline into Cartesian points
     polyline_points = [mercator_projection(coord) for coord in polyline_coords]
 
@@ -136,8 +131,8 @@ def generate_map(encoded_polyline, color="5c2c34", rotation=0, width=500, height
     try:
         zoom = zoom_level(rotated_min_coord, rotated_max_coord, width, height)
     except ValueError as e:
-        print(f"[generate_map] Error: {e} for polyline: {encoded_polyline}")
-        raise
+        print(f"Warning: {e}. Falling back to default zoom=15.")
+        zoom = 15
 
     overlays = [createPathString(color, encoded_polyline)]
 

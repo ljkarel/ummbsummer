@@ -1,4 +1,6 @@
 from django.contrib import admin
+from django.urls import reverse
+from django.utils.html import format_html
 from .models import Activity
 
 
@@ -28,3 +30,14 @@ class ActivityAdmin(admin.ModelAdmin):
     list_display = ('member', 'name', 'distance', 'minutes', 'sport_type', 'datetime', 'manual', 'private')
     search_fields = ('activity_id', 'member__first_name', 'member__last_name', 'member__email', 'member__preferences__nickname', 'name')
     list_filter = (SportTypeListFilter, 'manual', 'private')
+
+    readonly_fields = ['map_image_link']
+    exclude = ['map_image']
+
+    def map_image_link(self, obj):
+        if obj.pk and obj.map_image:
+            url = reverse('activity_map', kwargs={'pk': obj.pk})
+            return format_html('<a href="{}" target="_blank">View Map Image</a>', url)
+        return "No image available"
+    
+    map_image_link.short_description = "Map image"

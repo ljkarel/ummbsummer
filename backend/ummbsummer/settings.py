@@ -43,7 +43,7 @@ PRODUCTION_URL = 'https://ummbsummer.com'
 BASE_BACKEND_URL = LOCAL_BACKEND_URL if DEBUG else PRODUCTION_URL
 BASE_FRONTEND_URL = LOCAL_FRONTEND_URL if DEBUG else PRODUCTION_URL
 
-ALLOWED_HOSTS = ['localhost'] if DEBUG else ['ummbsummer.com']
+ALLOWED_HOSTS = ['localhost', '5d972e479cdc.ngrok-free.app'] if DEBUG else ['ummbsummer.com']
 
 CORS_ALLOWED_ORIGINS = [LOCAL_FRONTEND_URL] if DEBUG else [PRODUCTION_URL]
 CSRF_TRUSTED_ORIGINS = [LOCAL_FRONTEND_URL] if DEBUG else [PRODUCTION_URL]
@@ -69,6 +69,11 @@ STRAVA_AUTH = {
     
 }
 
+CELERY_BROKER_URL = 'redis://localhost:6379'
+CELERY_RESULT_BACKEND = 'redis://localhost:6379'
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+
 
 # Application definition
 
@@ -79,6 +84,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django_celery_beat',
     'corsheaders',
     'rest_framework',
     'members',
