@@ -1,0 +1,9 @@
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+preview = true
+
+[tool.ruff.lint]
+select = ["W", "E2", "E3", "I", "B", "UP", "C4", "N", "S", "TCH", "TID"]
+ignore = ["D212"]
+fixable = ["ALL"]

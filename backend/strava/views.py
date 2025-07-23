@@ -1,22 +1,20 @@
 import os
-from datetime import datetime, timezone
-
+from datetime import UTC, datetime, timezone
 from urllib.parse import urlencode
-from django.urls import reverse
-from django.shortcuts import redirect
-
-from django.views.decorators.csrf import csrf_exempt
-from django.utils.decorators import method_decorator
-
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
-
-from .utils import valid_scope, token_exchange, member_in_club, get_profile_picture
-from members.models import StravaAuth
-from .tasks import process_strava_webhook
 
 from django.conf import settings
+from django.shortcuts import redirect
+from django.urls import reverse
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
+from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
+from rest_framework.response import Response
+from rest_framework.views import APIView
+
+from members.models import StravaAuth
+
+from .tasks import process_strava_webhook
+from .utils import get_profile_picture, member_in_club, token_exchange, valid_scope
 
 WEBHOOK_ENDPOINT_TOKEN = os.getenv('STRAVA_WEBHOOK_ENDPOINT_TOKEN')
 WEBHOOK_VERIFY_TOKEN = os.getenv('STRAVA_WEBHOOK_VERIFY_TOKEN')
@@ -35,7 +33,7 @@ class StravaStatusView(APIView):
     ### Permitted methods:
     - GET: Returns whether the user is registered with Strava and includes related metadata if applicable.
     """
-        
+
     def get(self, request):
         user = request.user
 
@@ -54,13 +52,13 @@ class StravaStatusView(APIView):
                 'in_club': member_in_club(member),
                 'profile_picture': get_profile_picture(member)
             })
-        
+
         if not member and not (user.is_staff or user.is_superuser):
             # No member exists and user is not admin, raise error
             raise NotFound("Member not found.")
-        
+
         # Member is not registered or user is admin with no member
-        return Response({ 'joined': False })
+        return Response({'joined': False})
 
 
 class StravaInitView(APIView):
@@ -80,7 +78,7 @@ class StravaInitView(APIView):
         }
 
         return redirect(f'{OAUTH_URL}?{urlencode(params)}')
-        
+
 
 class StravaCallbackView(APIView):
     def get(self, request):
@@ -90,10 +88,10 @@ class StravaCallbackView(APIView):
 
         if error or not code or not scope:
             return redirect('strava_login')
-        
+
         if not valid_scope(scope):
             return redirect('strava_login')
-        
+
         token_data = token_exchange(code)
 
         member = request.user.member
@@ -105,7 +103,7 @@ class StravaCallbackView(APIView):
                 'access_token': token_data['access_token'],
                 'refresh_token': token_data['refresh_token'],
                 'token_expires': datetime.fromtimestamp(
-                    token_data.get('expires_at'), tz=timezone.utc),
+                    token_data.get('expires_at'), tz=UTC),
                 'scope': scope,
             }
         )
@@ -114,7 +112,6 @@ class StravaCallbackView(APIView):
         member.save()
 
         return redirect(f'{settings.BASE_FRONTEND_URL}/registration?registration_complete=true')
-
 
 
 @method_decorator(csrf_exempt, name='dispatch')
@@ -132,21 +129,18 @@ class StravaWebhooksView(APIView):
 
         if mode != 'subscribe' or not challenge:
             raise ValidationError("Missing or invalid mode/challenge.")
-        
+
         if verify_token != WEBHOOK_VERIFY_TOKEN:
             raise PermissionDenied("Invalid verification token.")
 
         return Response({"hub.challenge": challenge})
-    
+
     def post(self, request, token):
         if token != WEBHOOK_ENDPOINT_TOKEN:
             raise NotFound()
 
         if request.data['subscription_id'] != int(WEBHOOK_SUBSCRIPTION_ID):
             raise PermissionDenied("Invalid subscription ID.")
-        
+
         process_strava_webhook.delay(request.data)
         return Response()
-
-
-        

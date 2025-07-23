@@ -1,6 +1,11 @@
 from django.urls import path
-from .views import StravaStatusView, StravaInitView, StravaCallbackView, StravaWebhooksView
 
+from .views import (
+    StravaCallbackView,
+    StravaInitView,
+    StravaStatusView,
+    StravaWebhooksView,
+)
 
 urlpatterns = [
     path('', StravaStatusView.as_view(), name='strava_status'),

@@ -1,7 +1,8 @@
 from django.db.models import Sum
 from django.utils.timezone import now
 
-from .models import SectionWeeklyScore, MemberWeeklyPoints, get_week_for_datetime
+from .models import MemberWeeklyPoints, SectionWeeklyScore, get_week_for_datetime
+
 
 def recompute_sws(section, week, force=False):
     current_week = get_week_for_datetime(now())
@@ -27,6 +28,7 @@ def recompute_sws(section, week, force=False):
         }
     )
 
+
 def compute_rank_scores(week: int):
     week_scores = list(SectionWeeklyScore.objects.filter(week=week))
     week_scores.sort(key=lambda s: s.score, reverse=True)
@@ -36,6 +38,7 @@ def compute_rank_scores(week: int):
     for rank, score in enumerate(week_scores):
         score.rank_score = max_score - rank
         score.save()
+
 
 def compute_final_score():
     return (

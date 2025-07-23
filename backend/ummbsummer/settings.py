@@ -11,8 +11,9 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 import os
-from dotenv import load_dotenv, find_dotenv
 from pathlib import Path
+
+from dotenv import find_dotenv, load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -30,9 +31,9 @@ STATIC_ROOT = '/var/www/ummbsummer/static'
 # With DEBUG = True (development):
 #   Backend URL:  http://localhost:8000
 #   Frontend URL: http://localhost:5173
-# 
+#
 # With DEBUG = False (production):
-#   Backend/Frontend URL: https://ummbsummer.com 
+#   Backend/Frontend URL: https://ummbsummer.com
 DEBUG = True
 
 LOCAL_BACKEND_URL = 'http://localhost:8000'
@@ -66,7 +67,7 @@ GOOGLE_AUTH = {
 }
 
 STRAVA_AUTH = {
-    
+
 }
 
 CELERY_BROKER_URL = 'redis://localhost:6379'
@@ -112,7 +113,7 @@ REST_FRAMEWORK = {
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated'
-    ]    
+    ]
 }
 
 

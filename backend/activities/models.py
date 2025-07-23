@@ -1,8 +1,9 @@
-from django.db import models
 from django.core.files.base import ContentFile
+from django.db import models
+
+from members.models import Member
 
 from .enums import SportType
-from members.models import Member
 from .mapbox import generate_map
 
 
@@ -15,8 +16,8 @@ class Activity(models.Model):
     )
 
     member = models.ForeignKey(
-        Member, 
-        on_delete=models.CASCADE, 
+        Member,
+        on_delete=models.CASCADE,
         related_name='activities',
         help_text="The member that the activity belongs to."
     )
@@ -27,25 +28,25 @@ class Activity(models.Model):
     )
 
     distance = models.FloatField(
-        blank=True, 
+        blank=True,
         default=0,
         help_text="The distance (in miles) of the activity (if applicable)."
     )
 
     minutes = models.IntegerField(
-        blank=True, 
+        blank=True,
         default=0,
         help_text="The duration of the activity, in minutes."
     )
 
     elapsed_time = models.IntegerField(
-        blank=True, 
+        blank=True,
         default=0,
         help_text="The total elapsed time of the activity, in minutes. Includes pauses."
     )
 
     elevation_gain = models.FloatField(
-        blank=True, 
+        blank=True,
         default=0,
         help_text="The total elevation gain of the activity, in feet (if applicable)."
     )
@@ -61,7 +62,7 @@ class Activity(models.Model):
     )
 
     polyline = models.TextField(
-        blank=True, 
+        blank=True,
         default='',
         help_text="The encoded polyline representing the GPS route (if applicable)."
     )
@@ -88,10 +89,10 @@ class Activity(models.Model):
 
     def __str__(self):
         return f"{self.member} on {self.datetime.strftime('%b %d')}: {self.minutes} min {self.sport_type}"
-    
+
     def save(self, *args, **kwargs):
-        old_map = None # The activity's old map
-        old_polyline = None # The activity's old polyline
+        old_map = None  # The activity's old map
+        old_polyline = None  # The activity's old polyline
 
         # Try to get the old instance's map and polyline to compare values
         try:
@@ -107,14 +108,14 @@ class Activity(models.Model):
 
         if not update_map:
             return super().save(*args, **kwargs)
-        
+
         if old_map:
             old_map.delete(save=False)
 
         if not self.polyline:
             self.map_image = None
             return super().save(*args, **kwargs)
-        
+
         image_bytes = generate_map(self.polyline)
         if image_bytes:
             filename = f'activity_{self.activity_id}.png'

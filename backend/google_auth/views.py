@@ -1,17 +1,15 @@
-from google.oauth2 import id_token
-from google_auth_oauthlib.flow import Flow
-from google.auth.transport.requests import Request
-
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework.exceptions import NotFound
-from django.shortcuts import redirect
+from django.conf import settings
 from django.contrib.auth import login, logout
 from django.contrib.auth.models import User
-from django.conf import settings
+from django.shortcuts import redirect
+from google.auth.transport.requests import Request
+from google.oauth2 import id_token
+from google_auth_oauthlib.flow import Flow
+from rest_framework.exceptions import NotFound
+from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from members.models import Member
-
 
 CLIENT_CONFIG = {
     'web': {
@@ -56,12 +54,12 @@ class GoogleAuthStatusView(APIView):
 
         if member:
             # Member exists
-            return Response({ 'display_name': member.display_name })
-        
+            return Response({'display_name': member.display_name})
+
         if user.is_staff or user.is_superuser:
             # Member doesn't exist, but user is admin
-            return Response({ 'display_name': 'Staff User' })
-        
+            return Response({'display_name': 'Staff User'})
+
         # No member exists and user is not admin, raise error
         raise NotFound("Member not found.")
 
@@ -84,7 +82,7 @@ class GoogleAuthInitView(APIView):
             user = User.objects.get(username='admin')
             login(request, user)
             return redirect(settings.BASE_FRONTEND_URL)
-        
+
         # Create an OAuth 2.0 flow using the client configuration and desired scopes
         flow = build_flow()
 
@@ -113,7 +111,7 @@ class GoogleAuthCallbackView(APIView):
     ### Permitted methods:
     - GET: Validates the authorization details, logs the user in (if valid), and redirects to the appropriate page.
     """
-    
+
     # Users (necessarily) do not need to be logged in to access this view
     authentication_classes = []
     permission_classes = []
@@ -148,7 +146,7 @@ class GoogleAuthCallbackView(APIView):
         email = id_info.get('email')
         verified = id_info.get('email_verified', False)
         google_id = id_info.get('sub')  # The user's unique Google ID
-        
+
         # If the email wasn't verified by Google, reject the login
         if not verified:
             return redirect_to_login('email_not_verified')
@@ -174,14 +172,14 @@ class GoogleAuthCallbackView(APIView):
             # If the user doesn't exist, create it using the unique Google ID
             member.user, _ = User.objects.get_or_create(username=f'member_{google_id}')
             member.save()
-        
+
         # Log the member's user in
         login(request, user)
 
         # If the member hasn't connected with Strava yet, send them to the registration page
         if not hasattr(member, 'strava_auth'):
             return redirect(f'{settings.BASE_FRONTEND_URL}/registration')
-        
+
         # Otherwise, redirect them to the home page
         return redirect(settings.BASE_FRONTEND_URL)
 

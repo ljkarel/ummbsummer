@@ -1,8 +1,9 @@
-from rest_framework.views import APIView
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from .models import Section
 from .serializers import SectionSerializer
+
 
 class SectionRegistrationView(APIView):
     def get(self, request):

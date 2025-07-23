@@ -1,10 +1,12 @@
-from rest_framework.views import APIView
-from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
+from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from members.models import Section
-from .serializers import MemberWeeklyPointsSerializer, SectionWeeklyScoreSerializer
+
 from .models import SectionWeeklyScore
+from .serializers import MemberWeeklyPointsSerializer, SectionWeeklyScoreSerializer
+
 
 class MemberWeeklyPointsView(APIView):
     def get(self, request):
@@ -27,7 +29,7 @@ class SectionWeeklyScoreView(APIView):
         scores_qs = section.weekly_scores.all()
         if week:
             scores_qs = scores_qs.filter(week=week)
-        
+
         serializer = SectionWeeklyScoreSerializer(scores_qs.order_by('week'), many=True)
         return Response(serializer.data)
 
@@ -39,7 +41,7 @@ class WeeklyScoreboardView(APIView):
 
         if week:
             scores_qs = scores_qs.filter(week=week)
-        
+
         scores = list(scores_qs)  # Evaluate queryset
         scores.sort(key=lambda s: s.score, reverse=True)  # Sort by property in Python
 

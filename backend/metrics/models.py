@@ -1,13 +1,13 @@
-import os
 import math
+import os
 from datetime import datetime
 
-from django.db import models
-from django.core.validators import MinValueValidator, MaxValueValidator
-from django.utils.timezone import now
 from django.core.exceptions import ValidationError
+from django.core.validators import MaxValueValidator, MinValueValidator
+from django.db import models
+from django.utils.timezone import now
 
-from members.models import Section, Member
+from members.models import Member, Section
 
 NUM_WEEKS = 8
 WEEK_CHOICES = [(i, f"Week {i}") for i in range(1, NUM_WEEKS + 1)]
@@ -19,6 +19,7 @@ START_DATE = datetime.fromtimestamp(START_DATE_EPOCH_TIME).date()
 def get_current_week():
     """Returns the current week, calculated from the challenge start date."""
     return (now().date() - START_DATE).days // 7 + 1
+
 
 def get_week_for_datetime(target_datetime: datetime):
     """Returns the week for a given datetime, calculated from the challenge start date."""
@@ -62,7 +63,6 @@ class MemberWeeklyPoints(models.Model):
         if 0 <= self.minutes <= 210:
             return self.minutes
         return math.log(self.minutes / 210, 1.01) + 210
-
 
     class Meta:
         verbose_name = "Member Weekly Points"
@@ -131,7 +131,7 @@ class SectionWeeklyScore(models.Model):
             return 0.0
         return round(self.participating_members / self.total_members * 100, 1)
 
-    class Meta: 
+    class Meta:
         verbose_name = 'Section Weekly Score'
         verbose_name_plural = 'Section Weekly Scores'
         constraints = [

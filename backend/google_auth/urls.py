@@ -1,6 +1,11 @@
 from django.urls import path
-from .views import GoogleAuthInitView, GoogleAuthCallbackView, GoogleAuthLogoutView, GoogleAuthStatusView
 
+from .views import (
+    GoogleAuthCallbackView,
+    GoogleAuthInitView,
+    GoogleAuthLogoutView,
+    GoogleAuthStatusView,
+)
 
 urlpatterns = [
     path('', GoogleAuthStatusView.as_view(), name='auth_status'),

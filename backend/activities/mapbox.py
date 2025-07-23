@@ -1,8 +1,9 @@
-import os
 import math
-import requests
+import os
 from urllib.parse import quote
+
 import polyline
+import requests
 
 MAPBOX_ACCESS_TOKEN = os.getenv("MAPBOX_ACCESS_TOKEN")
 BASE_URL = "https://api.mapbox.com/styles/v1/ljkarel/cmcpnrr5j00l301s4f03710ft/static"
@@ -13,7 +14,9 @@ MAPBOX_PARAMS = {
     'logo': 'false'
 }
 
-R = 6378137 # Earth radius in meters
+R = 6378137  # Earth radius in meters
+WORLD_DIM = 512  # baseline tile size in px
+
 
 def mercator_projection(coord):
     """Converts a geographic coordinate to a Cartesian point."""
@@ -22,12 +25,14 @@ def mercator_projection(coord):
     y = R * math.log(math.tan(math.pi / 4 + math.radians(lat) / 2))
     return (x, y)
 
+
 def inverse_mercator(point):
     """Converts a Cartesian point to a geographic coordinate."""
     x, y = point
     lon = math.degrees(x / R)
     lat = math.degrees(2 * math.atan(math.exp(y / R)) - math.pi / 2)
     return (lat, lon)
+
 
 def rotate(point, angle_degrees):
     """Rotates a Cartesian point around a center point."""
@@ -41,10 +46,12 @@ def rotate(point, angle_degrees):
 
     return (rx, ry)
 
+
 def compute_bbox(points):
     """Computes the bounding box center of a set of Cartesian points."""
-    xs, ys = zip(*points)
+    xs, ys = zip(*points, strict=False)
     return ((min(xs), min(ys)), (max(xs), max(ys)))
+
 
 def compute_center(min_point, max_point):
     """Computes the center of a bounding box."""
@@ -53,11 +60,12 @@ def compute_center(min_point, max_point):
 
     return ((x_min + x_max) / 2, (y_min + y_max) / 2)
 
+
 def zoom_level(min_coord, max_coord, img_width, img_height):
     """Computes the zoom level based on the bounding box and the image dimensions."""
     lat_min, lon_min = min_coord
     lat_max, lon_max = max_coord
-    
+
     pad_x = img_width * 0.05
     pad_y = img_height * 0.05
 
@@ -65,13 +73,11 @@ def zoom_level(min_coord, max_coord, img_width, img_height):
     view_w = img_width - 2 * pad_x
     view_h = img_height - 2 * pad_y
 
-    WORLD_DIM = 512  # baseline tile size in px
-
     # Longitude span
     lon_delta = lon_max - lon_min
     if lon_delta == 0:
         raise ValueError("Longitude delta is zero")
-    
+
     # Latitude span (convert to Mercator Y)
     lat_rad_min = math.log(math.tan(math.radians(lat_min) / 2 + math.pi / 4))
     lat_rad_max = math.log(math.tan(math.radians(lat_max) / 2 + math.pi / 4))
@@ -84,20 +90,24 @@ def zoom_level(min_coord, max_coord, img_width, img_height):
 
     return min(zoom_lat, zoom_lon)
 
-def createPathString(strokeColor, polyline):
+
+def create_path_string(stroke_color, polyline):
     """Creates a path URL string."""
     url_polyline = quote(polyline, safe='')
-    return f'path-6+{strokeColor}-1({url_polyline})'
+    return f'path-6+{stroke_color}-1({url_polyline})'
 
-def createPinString(color, lat, lon):
+
+def create_pin_string(color, lat, lon):
     """Creates a pin URL string."""
     return f'pin-s+{color}({lon},{lat})'
 
-def createFullUrl(overlays, center_lat, center_lon, zoom, bearing, width, height):
+
+def create_full_url(overlays, center_lat, center_lon, zoom, bearing, width, height):
     """Joins the base URL, overlays, and settings into a GET URL."""
     overlays = ','.join(overlays)
     settings = f'{center_lon},{center_lat},{zoom},{bearing}/{width}x{height}'
     return f'{BASE_URL}/{overlays}/{settings}'
+
 
 def generate_map(encoded_polyline, color="5c2c34", rotation=0, width=500, height=500):
     """Uses the Mapbox API to generate a map with specific parameters."""
@@ -134,11 +144,11 @@ def generate_map(encoded_polyline, color="5c2c34", rotation=0, width=500, height
         print(f"Warning: {e}. Falling back to default zoom=15.")
         zoom = 15
 
-    overlays = [createPathString(color, encoded_polyline)]
+    overlays = [create_path_string(color, encoded_polyline)]
 
-    request_url = createFullUrl(overlays, true_center_lat, true_center_lon, zoom, rotation, width, height)
+    request_url = create_full_url(overlays, true_center_lat, true_center_lon, zoom, rotation, width, height)
 
-    response = requests.get(request_url, params=MAPBOX_PARAMS)
+    response = requests.get(request_url, params=MAPBOX_PARAMS, timeout=10)
     if not response.ok:
         # return None
         raise RuntimeError(f"Mapbox error {response.status_code}: {response.text}")

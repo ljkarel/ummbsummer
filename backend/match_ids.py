@@ -1,7 +1,9 @@
 import csv
+
 from members.models import Member
 
 INPUT_CSV = "athletes.csv"
+
 
 def find_matching_member(strava_name, matched_member_ids):
     strava_name_lower = strava_name.lower()
@@ -12,6 +14,7 @@ def find_matching_member(strava_name, matched_member_ids):
             matched_member_ids.add(member.id)
             return member
     return None
+
 
 def check_strava_ids():
     matched_member_ids = set()
@@ -59,5 +62,6 @@ def check_strava_ids():
     print("\n=== [UNMATCHED DB AUTHS] ===")
     for member in unmatched_auths:
         print(f"{member.roster_name} (Strava ID: {member.strava_auth.strava_id})")
+
 
 check_strava_ids()

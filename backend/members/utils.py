@@ -1,6 +1,8 @@
 import csv
-from datetime import timezone, datetime
+from datetime import UTC, datetime, timezone
+
 from .models import Member, Section, StravaAuth
+
 
 def import_roster(csv_path="./roster.csv"):
     new_members = []
@@ -47,14 +49,14 @@ def import_tokens(csv_path="./tokens.csv"):
         reader = csv.DictReader(csvfile)
         for row in reader:
             email = row['email'].strip()
-            
+
             try:
                 member = Member.objects.get(email=email)
             except Member.DoesNotExist:
                 print(f"Skipping: No member with email {email}")
                 continue
-            
-            new_expires = datetime.fromtimestamp(int(row['token expires'].strip()), tz=timezone.utc)
+
+            new_expires = datetime.fromtimestamp(int(row['token expires'].strip()), tz=UTC)
             try:
                 strava_auth = StravaAuth.objects.get(member=member)
                 if new_expires > strava_auth.token_expires:

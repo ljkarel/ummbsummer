@@ -1,10 +1,10 @@
 import os
+
 import requests
 from dateutil.parser import parse
 
-from members.models import Member
 from activities.models import Activity
-
+from members.models import Member
 
 # The Strava app's client ID
 CLIENT_ID = os.getenv('STRAVA_CLIENT_ID')
@@ -39,22 +39,27 @@ def meters_to_miles(meters: float) -> float:
     """Converts meters to miles."""
     return round(meters / 1609.34, 2)
 
+
 def meters_to_feet(meters: float) -> int:
     """Converts meters to feet."""
     return round(meters * 3.28084)
+
 
 def seconds_to_minutes(seconds: int) -> int:
     """Converts seconds to minutes. Rounds down."""
     return seconds // 60
 
+
 def valid_scope(scope: str) -> bool:
     """Determines whether a valid scope was given by the member."""
     return 'activity:read_all' in scope or 'activity:read' in scope
 
+
 def get_strava_headers(member: Member) -> dict:
     """Returns the authorization header for a Strava API request."""
     access_token = member.strava_auth.get_valid_access_token()
-    headers = {'Authorization': f'Bearer {access_token}'}
+    return {'Authorization': f'Bearer {access_token}'}
+
 
 def token_exchange(auth_code: str):
     """Makes a request to Strava for an access token."""
@@ -63,14 +68,15 @@ def token_exchange(auth_code: str):
         'client_secret': CLIENT_SECRET,
         'code': auth_code,
         'grant_type': 'authorization_code'
-    })
+    }, timeout=10)
     return response.json()
+
 
 # Make a request to Strava to deauthorize account with given access token
 def deauthorize(access_token: str):
     requests.post(DEAUTH_URL, data={
         'access_token': access_token
-    })
+    }, timeout=10)
 
 
 def member_in_club(member: Member) -> bool:
@@ -85,28 +91,29 @@ def member_in_club(member: Member) -> bool:
             'per_page': 200,
         }
 
-        response = requests.get(CLUBS_URL, headers=headers, params=params)
+        response = requests.get(CLUBS_URL, headers=headers, params=params, timeout=10)
         if response.status_code != 200:
             raise Exception(f"Strava API error: {response.status_code} - {response.text}")
-        
+
         clubs = response.json()
 
-        if not clubs: 
+        if not clubs:
             return False
 
         if any(club.get('id') == CLUB_ID for club in clubs):
             return True
-        
+
         current_page += 1
+
 
 def get_profile_picture(member: Member):
     """Fetches the profile picture URL of a Strava member, if available."""
     headers = get_strava_headers(member)
 
-    response = requests.get(ATHLETE_URL, headers=headers)
+    response = requests.get(ATHLETE_URL, headers=headers, timeout=10)
     if response.status_code != 200:
         raise Exception(f"Strava API error: {response.status_code} - {response.text}")
-    
+
     data = response.json()
     return data.get('profile')
 
@@ -137,7 +144,7 @@ def update_member_activities(member: Member):
             'before': END_DATE
         }
 
-        response = requests.get(ACTIVITIES_URL, headers=headers, params=params)
+        response = requests.get(ACTIVITIES_URL, headers=headers, params=params, timeout=10)
         if response.status_code != 200:
             raise Exception(f"Strava API error: {response.status_code} - {response.text}")
 
@@ -168,9 +175,8 @@ def update_member_activities(member: Member):
 
         if len(activities) != page_size:
             break
-        
+
         current_page += 1
-    
 
     Activity.objects.filter(member=member).exclude(activity_id__in=fetched_activity_ids).delete()
 
@@ -181,6 +187,7 @@ WEBHOOK_SUBSCRIPTION_ID = os.getenv('STRAVA_WEBHOOK_SUBSCRIPTION_ID')
 
 STRAVA_SUBSCRIPTION_URL = 'https://www.strava.com/api/v3/push_subscriptions'
 
+
 def create_strava_push_subscription():
     payload = {
         'client_id': os.getenv('STRAVA_CLIENT_ID'),
@@ -189,7 +196,7 @@ def create_strava_push_subscription():
         'verify_token': os.getenv('STRAVA_WEBHOOK_VERIFY_TOKEN'),
     }
 
-    response = requests.post(STRAVA_SUBSCRIPTION_URL, data=payload)
+    response = requests.post(STRAVA_SUBSCRIPTION_URL, data=payload, timeout=10)
     # print(response)
 
     if response.status_code == 201:
@@ -199,15 +206,15 @@ def create_strava_push_subscription():
         print(f"❌ Failed to create subscription: {response.status_code}")
         print(response.text)
 
-def list_strava_push_subscription():
-    STRAVA_BASE_URL = "https://www.strava.com/api/v3/push_subscriptions"
 
+def list_strava_push_subscription():
     response = requests.get(
         STRAVA_SUBSCRIPTION_URL,
         params={
             'client_id': os.getenv('STRAVA_CLIENT_ID'),
             'client_secret': os.getenv('STRAVA_CLIENT_SECRET'),
-        }
+        },
+        timeout=10
     )
 
     if response.status_code == 200:
@@ -223,7 +230,8 @@ def list_strava_push_subscription():
         print(f"❌ Failed to list subscriptions: {response.status_code}")
         print(response.text)
         return []
-    
+
+
 def delete_strava_subscription(subscription_id: int):
     """Deletes a Strava webhook subscription by ID."""
     response = requests.delete(
@@ -231,7 +239,8 @@ def delete_strava_subscription(subscription_id: int):
         params={
             "client_id": os.getenv("STRAVA_CLIENT_ID"),
             "client_secret": os.getenv("STRAVA_CLIENT_SECRET"),
-        }
+        },
+        timeout=10
     )
 
     if response.status_code == 204:

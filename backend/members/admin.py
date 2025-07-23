@@ -1,9 +1,11 @@
+import traceback
+
 from django.contrib import admin
 
 from strava.utils import update_member_activities
-from .models import Section, Member, MemberPreferences, StravaAuth
 
-import traceback
+from .models import Member, MemberPreferences, Section, StravaAuth
+
 
 @admin.register(Section)
 class SectionAdmin(admin.ModelAdmin):
@@ -19,7 +21,7 @@ class MemberAdmin(admin.ModelAdmin):
     list_display = ('first_name', 'last_name', 'email', 'section', 'year')
     search_fields = ('first_name', 'last_name', 'preferences__nickname', 'email')
     list_filter = ('section', 'year')
-    
+
     @admin.action(description="Update activities for selected Members")
     def update_activities(self, request, queryset):
         success_count = 0

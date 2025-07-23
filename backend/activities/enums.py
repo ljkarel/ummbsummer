@@ -1,5 +1,6 @@
 from django.db.models import TextChoices
 
+
 class SportType(TextChoices):
     ALPINE_SKI = 'AlpineSki', 'Alpine Ski'
     BACKCOUNTRY_SKI = 'BackcountrySki', 'Backcountry Ski'

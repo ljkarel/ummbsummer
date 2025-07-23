@@ -1,11 +1,13 @@
 from django.contrib import admin
 from django.urls import reverse
 from django.utils.html import format_html
+
 from .models import Activity
 
 
 class SportTypeListFilter(admin.SimpleListFilter):
     """Custom filter for sport types. Only shows sport type options that actually appear in the database."""
+
     title = ('sport type')
     parameter_name = 'sport type'
 
@@ -25,6 +27,7 @@ class SportTypeListFilter(admin.SimpleListFilter):
             return queryset.filter(sport_type=self.value())
         return queryset
 
+
 @admin.register(Activity)
 class ActivityAdmin(admin.ModelAdmin):
     list_display = ('member', 'name', 'distance', 'minutes', 'sport_type', 'datetime', 'manual', 'private')
@@ -39,5 +42,5 @@ class ActivityAdmin(admin.ModelAdmin):
             url = reverse('activity_map', kwargs={'pk': obj.pk})
             return format_html('<a href="{}" target="_blank">View Map Image</a>', url)
         return "No image available"
-    
+
     map_image_link.short_description = "Map image"

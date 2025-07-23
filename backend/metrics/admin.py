@@ -1,5 +1,6 @@
 from django.contrib import admin
-from .models import SectionWeeklyScore, MemberWeeklyPoints
+
+from .models import MemberWeeklyPoints, SectionWeeklyScore
 from .utils import recompute_sws
 
 

@@ -1,10 +1,11 @@
-from django.db.models.signals import pre_save, post_save, pre_delete, post_delete
+from django.db.models.signals import post_delete, post_save, pre_delete, pre_save
 from django.dispatch import receiver
 from django.utils.timezone import localtime
 
+from metrics.models import MemberWeeklyPoints, get_week_for_datetime
 
 from .models import Activity
-from metrics.models import MemberWeeklyPoints, get_week_for_datetime
+
 
 def update_or_delete_mwp(mwp, new_minutes):
     mwp.minutes = max(0, new_minutes)
@@ -41,7 +42,6 @@ def update_weekly_minutes_on_save(sender, instance, created, **kwargs):
         instance.delete()
         return
 
-
     if created or instance._old_week == new_week:
         # New activity or same-week update
         mwp, _ = MemberWeeklyPoints.objects.get_or_create(member=instance.member, week=new_week)
@@ -68,6 +68,7 @@ def update_weekly_minutes_on_delete(sender, instance, **kwargs):
         update_or_delete_mwp(mwp, mwp.minutes - instance.minutes)
     except MemberWeeklyPoints.DoesNotExist:
         pass
+
 
 @receiver(post_delete, sender=Activity)
 def delete_activity_image_file(sender, instance, **kwargs):

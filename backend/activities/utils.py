@@ -7,4 +7,3 @@
 #             filename = f'activity_{instance.activity_id}.png'
 #             instance.map_image.save(filename, ContentFile(image_bytes), save=False)
 #             instance.save(update_fields=['map_image'])
-
