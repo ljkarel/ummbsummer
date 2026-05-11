@@ -1,0 +1,82 @@
+services:
+  postgres:
+    ports:
+      - "5432:5432"
+
+  redis:
+    ports:
+      - "6379:6379"
+
+  django:
+    build:
+      context: ./backend
+      target: dev
+    volumes:
+      - ./backend:/app
+      - media_files:/app/media
+    ports:
+      - "8000:8000"
+    env_file: .env
+    environment:
+      DJANGO_DEBUG: "True"
+      DATABASE_HOST: postgres
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      target: dev
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    ports:
+      - "5173:5173"
+    environment:
+      VITE_DJANGO_URL: http://django:8000
+    depends_on:
+      - django
+
+  celery:
+    build:
+      context: ./backend
+      target: dev
+    command: celery -A ummbsummer worker --loglevel=info
+    volumes:
+      - ./backend:/app
+      - media_files:/app/media
+    env_file: .env
+    environment:
+      DJANGO_DEBUG: "True"
+      DATABASE_HOST: postgres
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  celerybeat:
+    build:
+      context: ./backend
+      target: dev
+    command: celery -A ummbsummer beat --loglevel=info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    volumes:
+      - ./backend:/app
+    env_file: .env
+    environment:
+      DJANGO_DEBUG: "True"
+      DATABASE_HOST: postgres
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy

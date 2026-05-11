@@ -1,0 +1,84 @@
+services:
+  django:
+    build:
+      context: ./backend
+      target: prod
+    volumes:
+      - static_files:/var/www/ummbsummer/static
+      - media_files:/app/media
+    env_file: .env.prod
+    environment:
+      DATABASE_HOST: postgres
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
+      STATIC_ROOT: /var/www/ummbsummer/static
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  nginx:
+    build:
+      context: .
+      dockerfile: nginx/Dockerfile
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - static_files:/var/www/ummbsummer/static:ro
+      - media_files:/app/media:ro
+      - certbot_certs:/etc/letsencrypt:ro
+      - certbot_www:/var/www/certbot
+    depends_on:
+      - django
+    # Reload nginx every 6h to pick up renewed certificates
+    command: >
+      /bin/sh -c "while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g 'daemon off;'"
+
+  certbot:
+    image: certbot/certbot
+    volumes:
+      - certbot_certs:/etc/letsencrypt
+      - certbot_www:/var/www/certbot
+    # Attempt renewal every 12h
+    entrypoint: >
+      /bin/sh -c "trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done"
+
+  celery:
+    build:
+      context: ./backend
+      target: prod
+    command: celery -A ummbsummer worker --loglevel=info --concurrency 2
+    volumes:
+      - media_files:/app/media
+    env_file: .env.prod
+    environment:
+      DATABASE_HOST: postgres
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  celerybeat:
+    build:
+      context: ./backend
+      target: prod
+    command: celery -A ummbsummer beat --loglevel=info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    env_file: .env.prod
+    environment:
+      DATABASE_HOST: postgres
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+volumes:
+  certbot_certs:
+  certbot_www:

@@ -35,7 +35,7 @@ def build_flow(state=None):
 def redirect_to_login(error=None):
     """Redirects to the frontend login page. Allows specification of an error."""
     error_param = f'?error={error}' if error else ''
-    return redirect(f'{settings.BASE_FRONTEND_URL}/login{error_param}')
+    return redirect(f'{settings.FRONTEND_URL}/login{error_param}')
 
 
 class GoogleAuthStatusView(APIView):
@@ -81,7 +81,7 @@ class GoogleAuthInitView(APIView):
         if settings.DEBUG:
             user = User.objects.get(username='admin')
             login(request, user)
-            return redirect(settings.BASE_FRONTEND_URL)
+            return redirect(settings.FRONTEND_URL)
 
         # Create an OAuth 2.0 flow using the client configuration and desired scopes
         flow = build_flow()
@@ -160,7 +160,7 @@ class GoogleAuthCallbackView(APIView):
                 user = User.objects.get(email=email)
                 if user.is_staff or user.is_superuser:
                     login(request, user)
-                    return redirect(settings.BASE_FRONTEND_URL)
+                    return redirect(settings.FRONTEND_URL)
                 else:
                     return redirect_to_login('non_admin_user')
             except User.DoesNotExist:
@@ -178,10 +178,10 @@ class GoogleAuthCallbackView(APIView):
 
         # If the member hasn't connected with Strava yet, send them to the registration page
         if not hasattr(member, 'strava_auth'):
-            return redirect(f'{settings.BASE_FRONTEND_URL}/registration')
+            return redirect(f'{settings.FRONTEND_URL}/registration')
 
         # Otherwise, redirect them to the home page
-        return redirect(settings.BASE_FRONTEND_URL)
+        return redirect(settings.FRONTEND_URL)
 
 
 class GoogleAuthLogoutView(APIView):

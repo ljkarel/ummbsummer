@@ -111,7 +111,7 @@ class StravaCallbackView(APIView):
         member.strava_auth = strava_auth
         member.save()
 
-        return redirect(f'{settings.BASE_FRONTEND_URL}/registration?registration_complete=true')
+        return redirect(f'{settings.FRONTEND_URL}/registration?registration_complete=true')
 
 
 @method_decorator(csrf_exempt, name='dispatch')
