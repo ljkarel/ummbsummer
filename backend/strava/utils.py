@@ -1,3 +1,4 @@
+import calendar
 import os
 
 import requests
@@ -5,6 +6,9 @@ from dateutil.parser import parse
 
 from activities.models import Activity
 from members.models import Member
+from django.db.models import Max, Min
+
+from metrics.models import Competition
 
 # The Strava app's client ID
 CLIENT_ID = os.getenv('STRAVA_CLIENT_ID')
@@ -14,12 +18,6 @@ CLIENT_SECRET = os.getenv('STRAVA_CLIENT_SECRET')
 
 # The Strava club ID
 CLUB_ID = int(os.getenv('STRAVA_CLUB_ID'))
-
-# The epoch time of the start date for pulling activities
-START_DATE = os.getenv('START_DATE_EPOCH_TIME')
-
-# The epoch time of the end date for pulling activities
-END_DATE = os.getenv('END_DATE_EPOCH_TIME')
 
 # Base Strava API URL
 BASE_URL = 'https://www.strava.com/api/v3'
@@ -132,6 +130,13 @@ def update_all_member_activities():
 def update_member_activities(member: Member):
     headers = get_strava_headers(member)
 
+    date_range = Competition.objects.aggregate(
+        earliest=Min('start_date'),
+        latest=Max('end_date'),
+    )
+    after = calendar.timegm(date_range['earliest'].timetuple()) if date_range['earliest'] else None
+    before = calendar.timegm(date_range['latest'].timetuple()) if date_range['latest'] else None
+
     current_page = 1
     page_size = 200
     fetched_activity_ids = set()
@@ -140,8 +145,8 @@ def update_member_activities(member: Member):
         params = {
             'page': current_page,
             'per_page': page_size,
-            'after': START_DATE,
-            'before': END_DATE
+            'after': after,
+            'before': before,
         }
 
         response = requests.get(ACTIVITIES_URL, headers=headers, params=params, timeout=10)
