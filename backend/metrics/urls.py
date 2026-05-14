@@ -1,9 +1,9 @@
 from django.urls import path
 
-from .views import MemberWeeklyPointsView, SectionWeeklyScoreView, WeeklyScoreboardView
+from .views import MemberPeriodPointsView, ScoreboardView, SectionPeriodScoreView
 
 urlpatterns = [
-    path('me/', MemberWeeklyPointsView.as_view(), name='member_weekly_points'),
-    path('sections/<slug:section_slug>/', SectionWeeklyScoreView.as_view(), name='section_weekly_score'),
-    path('scoreboard/', WeeklyScoreboardView.as_view(), name='scoreboard'),
+    path('me/', MemberPeriodPointsView.as_view(), name='member_period_points'),
+    path('sections/<slug:section_slug>/', SectionPeriodScoreView.as_view(), name='section_period_score'),
+    path('scoreboard/', ScoreboardView.as_view(), name='scoreboard'),
 ]

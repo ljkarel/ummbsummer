@@ -53,7 +53,6 @@ INSTALLED_APPS = [
     'strava',
     'google_auth',
     'metrics',
-    'art',
 ]
 
 MIDDLEWARE = [

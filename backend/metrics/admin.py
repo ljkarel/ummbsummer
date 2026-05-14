@@ -1,33 +1,44 @@
 from django.contrib import admin
 
-from .models import MemberWeeklyPoints, SectionWeeklyScore
-from .utils import recompute_sws
+from .models import Competition, CompetitionPeriod, SectionPeriodScore
+from .utils import freeze_section_period_scores
 
 
-@admin.register(SectionWeeklyScore)
-class SectionWeeklyScoreAdmin(admin.ModelAdmin):
-    list_display = ('section', 'week', 'participating_members', 'total_members', 'percent_participation', 'total_member_points', 'score', 'rank_score')
-    list_filter = ('section', 'week')
+class CompetitionPeriodInline(admin.TabularInline):
+    model = CompetitionPeriod
+    extra = 0
 
-    @admin.action(description="Recompute selected Section Weekly Scores")
-    def update_sws(self, request, queryset):
-        if not request.user.has_perm('metrics.can_recompute_sws'):
+
+@admin.register(Competition)
+class CompetitionAdmin(admin.ModelAdmin):
+    list_display = ('name', 'start_date', 'end_date')
+    inlines = [CompetitionPeriodInline]
+
+
+@admin.register(CompetitionPeriod)
+class CompetitionPeriodAdmin(admin.ModelAdmin):
+    list_display = ('name', 'competition', 'start_date', 'end_date')
+    list_filter = ('competition',)
+
+    @admin.action(description="Freeze scores for selected periods")
+    def freeze_scores(self, request, queryset):
+        if not request.user.has_perm('metrics.can_freeze_period_scores'):
             self.message_user(request, "You do not have permission to perform this action.", level='error')
             return
-        for sws in queryset:
-            recompute_sws(sws.section, sws.week, force=True)
+        for period in queryset:
+            freeze_section_period_scores(period)
+        self.message_user(request, f"Scores frozen for {queryset.count()} period(s).")
 
     def get_actions(self, request):
         actions = super().get_actions(request)
-        if not request.user.has_perm('metrics.can_recompute_sws'):
-            actions.pop('update_sws', None)
+        if not request.user.has_perm('metrics.can_freeze_period_scores'):
+            actions.pop('freeze_scores', None)
         return actions
 
-    actions = ('update_sws',)
+    actions = ('freeze_scores',)
 
 
-@admin.register(MemberWeeklyPoints)
-class MemberWeeklyPointsAdmin(admin.ModelAdmin):
-    list_display = ('member', 'week', 'minutes', 'points')
-    search_fields = ('member__first_name', 'member__last_name', 'member__email', 'member__preferences__nickname')
-    list_filter = ('week',)
+@admin.register(SectionPeriodScore)
+class SectionPeriodScoreAdmin(admin.ModelAdmin):
+    list_display = ('section', 'period', 'participating_members', 'total_members', 'percent_participation', 'total_member_points', 'score')
+    list_filter = ('section', 'period')

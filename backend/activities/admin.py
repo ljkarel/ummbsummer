@@ -15,12 +15,12 @@ class SportTypeListFilter(admin.SimpleListFilter):
         used_sports = Activity.objects.values_list('sport_type', flat=True).distinct()
         choices_dict = dict(Activity._meta.get_field('sport_type').choices)
 
-        lookups = {
-            choices_dict.get(sport, sport): (sport, choices_dict.get(sport, sport))
+        lookups = [
+            (sport, choices_dict.get(sport, sport))
             for sport in used_sports
-        }
+        ]
 
-        return sorted(lookups.values(), key=lambda x: x[1])
+        return sorted(lookups, key=lambda x: x[1])
 
     def queryset(self, request, queryset):
         if self.value():
