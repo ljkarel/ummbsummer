@@ -3,11 +3,10 @@ import os
 
 import requests
 from dateutil.parser import parse
+from django.db.models import Max, Min
 
 from activities.models import Activity
 from members.models import Member
-from django.db.models import Max, Min
-
 from metrics.models import Competition
 
 # The Strava app's client ID

@@ -6,7 +6,11 @@ from members.models import Section
 
 from .models import CompetitionPeriod, SectionPeriodScore
 from .serializers import LiveSectionScoreSerializer, SectionPeriodScoreSerializer
-from .utils import compute_member_points_for_period, compute_section_score_for_period, get_current_period
+from .utils import (
+    compute_member_points_for_period,
+    compute_section_score_for_period,
+    get_current_period,
+)
 
 
 class MemberPeriodPointsView(APIView):
