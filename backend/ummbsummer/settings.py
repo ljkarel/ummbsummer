@@ -1,16 +1,24 @@
 import os
 from pathlib import Path
 
+from dotenv import load_dotenv
+
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+load_dotenv(BASE_DIR.parent / '.env')
 
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY')
 
 DEBUG = os.getenv('DJANGO_DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = os.getenv('DJANGO_ALLOWED_HOSTS', 'localhost').split(',')
-
-BACKEND_URL = os.getenv('BACKEND_URL', 'http://localhost:8000')
-FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:5173')
+if DEBUG:
+    ALLOWED_HOSTS = ['localhost', '127.0.0.1']
+    BACKEND_URL = 'http://localhost:8000'
+    FRONTEND_URL = 'http://localhost:5173'
+else:
+    ALLOWED_HOSTS = ['ummbsummer.com']
+    BACKEND_URL = 'https://ummbsummer.com'
+    FRONTEND_URL = 'https://ummbsummer.com'
 
 CORS_ALLOWED_ORIGINS = [FRONTEND_URL]
 CSRF_TRUSTED_ORIGINS = [FRONTEND_URL]
