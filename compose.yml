@@ -1,5 +1,28 @@
 services:
+  postgres:
+    image: postgres:17-alpine
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: ${DATABASE_NAME}
+      POSTGRES_USER: ${DATABASE_USER}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DATABASE_USER} -d ${DATABASE_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
   django:
+    profiles: [prod]
     build:
       context: ./backend
       target: prod
@@ -19,6 +42,7 @@ services:
         condition: service_healthy
 
   nginx:
+    profiles: [prod]
     build:
       context: .
       dockerfile: nginx/Dockerfile
@@ -37,6 +61,7 @@ services:
       /bin/sh -c "while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g 'daemon off;'"
 
   certbot:
+    profiles: [prod]
     image: certbot/certbot
     volumes:
       - certbot_certs:/etc/letsencrypt
@@ -46,6 +71,7 @@ services:
       /bin/sh -c "trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done"
 
   celery:
+    profiles: [prod]
     build:
       context: ./backend
       target: prod
@@ -64,6 +90,7 @@ services:
         condition: service_healthy
 
   celerybeat:
+    profiles: [prod]
     build:
       context: ./backend
       target: prod
@@ -80,5 +107,8 @@ services:
         condition: service_healthy
 
 volumes:
+  postgres_data:
+  static_files:
+  media_files:
   certbot_certs:
   certbot_www:
