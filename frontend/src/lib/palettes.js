@@ -1,0 +1,15 @@
+export const PALETTE = {
+  bg: "#F1EADB",
+  panel: "#FBF7EC",
+  panelAlt: "#EDE2C9",
+  ink: "#1B1410",
+  inkSoft: "#5A4A3B",
+  rule: "#1B1410",
+  ruleSoft: "rgba(27,20,16,.18)",
+  brand: "#7A1F2B",
+  accent: "#E5A823",
+  accent2: "#C9522A",
+  good: "#3E6A41",
+  chipBg: "#1B1410",
+  chipInk: "#FBF7EC",
+};
