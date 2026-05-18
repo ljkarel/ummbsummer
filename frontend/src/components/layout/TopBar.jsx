@@ -1,18 +1,20 @@
 import { Link, useLocation } from 'react-router-dom';
-import { UserIcon } from '@heroicons/react/24/solid';
+import { Cog6ToothIcon } from '@heroicons/react/24/outline';
 import { Mono } from '../ui.jsx';
 import { BASE } from '../../lib/api.js';
+import { useSettings } from '../../contexts/SettingsContext.jsx';
 const TODAY = new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 
 const NAV_ITEMS = [
-  { label: 'Dashboard',   to: '/'         },
-  { label: 'Activity',    to: '/activity' },
+  { label: 'Home',   to: '/'         },
+  { label: 'My Activity',    to: '/activity' },
   { label: 'Strava Art',  to: '/art'      },
   { label: 'Roster',      to: '/roster'   },
 ];
 
-export function TopBar({ settingsOpen, onAvatarClick, stravaConnected = true }) {
+export function TopBar({ stravaConnected = true }) {
   const { pathname } = useLocation();
+  const { open: settingsOpen, setOpen: setSettingsOpen } = useSettings();
   const isActive = (to) => to === '/' ? pathname === '/' : pathname.startsWith(to);
 
   return (
@@ -51,25 +53,12 @@ export function TopBar({ settingsOpen, onAvatarClick, stravaConnected = true }) 
         </nav>
 
         <button
-          aria-label="Menu"
-          className="flex sm:hidden w-8 h-8 bg-transparent text-ink border border-rule-soft cursor-pointer items-center justify-center"
-        >
-          <svg width="14" height="14" viewBox="0 0 16 16">
-            <g stroke="var(--ink)" strokeWidth="1.5">
-              <line x1="2" y1="4" x2="14" y2="4" />
-              <line x1="2" y1="8" x2="14" y2="8" />
-              <line x1="2" y1="12" x2="14" y2="12" />
-            </g>
-          </svg>
-        </button>
-
-        <button
-          onClick={onAvatarClick}
+          onClick={() => setSettingsOpen((o) => !o)}
           aria-label="Open settings"
-          className="w-8 h-8 bg-transparent border border-rule-soft grid place-items-center cursor-pointer"
-          style={{ outline: settingsOpen ? '2px solid var(--brand)' : 'none', outlineOffset: '1px', transition: 'outline .1s' }}
+          className="hidden sm:flex w-5 h-5 bg-transparent cursor-pointer items-center justify-center"
+          style={{ color: settingsOpen ? 'var(--brand)' : 'var(--ink)', transition: 'color .1s' }}
         >
-          <UserIcon className="w-3.5 h-3.5" style={{ color: 'var(--ink)' }} />
+          <Cog6ToothIcon className="w-5 h-5" />
         </button>
       </div>
     </div>

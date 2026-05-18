@@ -3,7 +3,7 @@ import { Mono, Rule, Tag } from '../components/ui.jsx';
 import { TopBar } from '../components/layout/TopBar.jsx';
 import { BottomNav } from '../components/layout/BottomNav.jsx';
 import { PageFooter } from '../components/layout/PageFooter.jsx';
-import { SettingsDrawer } from '../components/SettingsDrawer.jsx';
+
 import { getMe, getActivities, getSportTypes } from '../lib/api.js';
 
 function RouteThumb({ svgPath }) {
@@ -117,7 +117,7 @@ function ActivityCard({ a }) {
 }
 
 export default function Activity() {
-  const [settingsOpen, setSettingsOpen] = useState(false);
+
   const [me, setMe] = useState(null);
   const [activities, setActivities] = useState([]);
   const [totalCount, setTotalCount] = useState(0);
@@ -184,9 +184,8 @@ export default function Activity() {
 
   return (
     <div className="w-full min-h-screen bg-bg text-ink font-sans px-9 pt-7 pb-20 relative" data-page-root>
-      <TopBar settingsOpen={settingsOpen} onAvatarClick={() => setSettingsOpen((o) => !o)} />
+      <TopBar />
       <Rule weight={1.5} />
-      <SettingsDrawer open={settingsOpen} onClose={() => setSettingsOpen(false)} />
 
       <div className="py-[26px] pb-[22px]">
         <Mono className="text-[11px] text-ink-soft tracking-[.18em] uppercase">Your activity — summer to date</Mono>
@@ -223,10 +222,10 @@ export default function Activity() {
           <h2 className="font-tight font-extrabold text-[22px] m-0" style={{ letterSpacing: '-0.02em' }}>All activities</h2>
           <Mono className="text-[11px] text-ink-soft tracking-[.1em] uppercase">{filtered.length} of {originalTotalCount}</Mono>
         </div>
-        <div className="flex items-center gap-[18px]">
+        <div className="flex flex-wrap items-center gap-[18px] mt-2 sm:mt-0">
           <div className="flex items-center gap-[6px]">
             <Mono className="text-[10px] text-ink-soft tracking-[.14em] uppercase">Sport</Mono>
-            <div className="flex border border-rule-soft">
+            <div className="flex border border-rule-soft overflow-x-auto max-w-[60vw] sm:max-w-none">
               {sports.map((s) => (
                 <button
                   key={s.value}
@@ -266,7 +265,7 @@ export default function Activity() {
               <div
                 key={a.activity_id}
                 className={[
-                  i % 4 !== 3 ? 'border-r border-rule-soft' : '',
+                  i % 4 !== 3 ? 'sm:border-r border-rule-soft' : '',
                   i < filtered.length - (filtered.length % 4 || 4) ? 'border-b border-rule-soft' : '',
                 ].filter(Boolean).join(' ')}
               >

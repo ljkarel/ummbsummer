@@ -1,4 +1,7 @@
 import { createBrowserRouter, Navigate, Outlet } from 'react-router-dom';
+import { useSwipeNavigation } from './hooks/useSwipeNavigation.js';
+import { SettingsProvider, useSettings } from './contexts/SettingsContext.jsx';
+import { SettingsDrawer } from './components/SettingsDrawer.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 import Activity from './pages/Activity.jsx';
 import StravaArt from './pages/StravaArt.jsx';
@@ -12,11 +15,22 @@ import RosterRequest from './pages/RosterRequest.jsx';
 import ErrorPage from './pages/ErrorPage.jsx';
 import { useAuth } from './contexts/AuthContext.jsx';
 
+function AuthLayout() {
+  const { open, setOpen } = useSettings();
+  const swipe = useSwipeNavigation();
+  return (
+    <div {...swipe} style={{ touchAction: 'pan-y' }}>
+      <Outlet />
+      <SettingsDrawer open={open} onClose={() => setOpen(false)} />
+    </div>
+  );
+}
+
 function RequireAuth() {
   const { user } = useAuth();
   if (user === undefined) return null; // loading — render nothing until auth resolves
   if (user === null) return <Navigate to="/signin" replace />;
-  return <Outlet />;
+  return <SettingsProvider><AuthLayout /></SettingsProvider>;
 }
 
 function RedirectIfAuthed() {

@@ -5,7 +5,7 @@ import { Mono, Rule, Tag } from '../components/ui.jsx';
 import { TopBar } from '../components/layout/TopBar.jsx';
 import { BottomNav } from '../components/layout/BottomNav.jsx';
 import { PageFooter } from '../components/layout/PageFooter.jsx';
-import { SettingsDrawer } from '../components/SettingsDrawer.jsx';
+
 import {
   getPeriods, getMe,
   getArtWall, getMyArtSub, getActivities,
@@ -213,7 +213,7 @@ function SubmissionTile({ s, onLike }) {
 }
 
 export default function StravaArt() {
-  const [settingsOpen, setSettingsOpen] = useState(false);
+
   const [me, setMe] = useState(null);
   const [periods, setPeriods] = useState([]);
   const [livePeriodId, setLivePeriodId] = useState(null);
@@ -357,9 +357,8 @@ export default function StravaArt() {
 
   return (
     <div className="w-full min-h-screen bg-bg text-ink font-sans px-9 pt-7 pb-20 relative" data-page-root>
-      <TopBar settingsOpen={settingsOpen} onAvatarClick={() => setSettingsOpen((o) => !o)} />
+      <TopBar />
       <Rule />
-      <SettingsDrawer open={settingsOpen} onClose={() => setSettingsOpen(false)} />
 
       {/* Hero grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-end py-[26px] pb-[22px]">

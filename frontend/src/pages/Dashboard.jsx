@@ -5,7 +5,7 @@ import { useFlipAnimation } from '../lib/useFlipAnimation.js';
 import { TopBar } from '../components/layout/TopBar.jsx';
 import { BottomNav } from '../components/layout/BottomNav.jsx';
 import { PageFooter } from '../components/layout/PageFooter.jsx';
-import { SettingsDrawer } from '../components/SettingsDrawer.jsx';
+
 import { BASE, getMe, getPeriods, getScoreboard, getActivities } from '../lib/api.js';
 
 const CT = 'America/Chicago';
@@ -132,7 +132,7 @@ export default function Dashboard() {
   const [activities, setActivities] = useState([]);
   const [lbMode, setLbMode] = useState('week');
   const [selectedPeriodId, setSelectedPeriodId] = useState(null);
-  const [settingsOpen, setSettingsOpen] = useState(false);
+
   const [lbAnimated, setLbAnimated] = useState(false);
   const [stravaModalDismissed, setStravaModalDismissed] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
@@ -192,9 +192,8 @@ export default function Dashboard() {
 
   return (
     <div className="w-full min-h-screen bg-bg text-ink font-sans px-9 pt-7 pb-20 relative" data-page-root>
-      <TopBar settingsOpen={settingsOpen} onAvatarClick={() => setSettingsOpen((o) => !o)} stravaConnected={stravaConnected} />
+      <TopBar stravaConnected={stravaConnected} />
       <Rule weight={1.5} />
-      <SettingsDrawer open={settingsOpen} onClose={() => setSettingsOpen(false)} />
 
       {/* Strava not-connected modal */}
       {showStravaModal && (

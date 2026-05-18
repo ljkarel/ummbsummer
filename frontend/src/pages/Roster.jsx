@@ -3,7 +3,7 @@ import { Mono, Rule, Tag } from '../components/ui.jsx';
 import { TopBar } from '../components/layout/TopBar.jsx';
 import { BottomNav } from '../components/layout/BottomNav.jsx';
 import { PageFooter } from '../components/layout/PageFooter.jsx';
-import { SettingsDrawer } from '../components/SettingsDrawer.jsx';
+
 import { getRoster, getSections } from '../lib/api.js';
 
 function StatusDot({ status }) {
@@ -36,7 +36,7 @@ function MemberCard({ m }) {
 }
 
 export default function Roster() {
-  const [settingsOpen, setSettingsOpen] = useState(false);
+
   const [sections, setSections] = useState(null);
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -78,9 +78,8 @@ export default function Roster() {
 
   return (
     <div className="w-full min-h-screen bg-bg text-ink font-sans px-9 pt-7 pb-20 relative" data-page-root>
-      <TopBar settingsOpen={settingsOpen} onAvatarClick={() => setSettingsOpen((o) => !o)} />
+      <TopBar />
       <Rule />
-      <SettingsDrawer open={settingsOpen} onClose={() => setSettingsOpen(false)} />
 
       {/* Hero */}
       <div className="grid grid-cols-1 lg:grid-cols-[1.5fr_1fr] gap-8 items-end py-[26px]">
@@ -153,7 +152,7 @@ export default function Roster() {
             </button>
           ))}
         </div>
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2.5 flex-wrap">
           <Mono className="text-[10px] text-ink-soft tracking-[.14em] uppercase">Status</Mono>
           {['All', 'connected', 'pending', 'unregistered'].map((s) => (
             <button
