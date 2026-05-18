@@ -1,4 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
+import { UserIcon } from '@heroicons/react/24/outline';
 import { Mono } from '../ui.jsx';
 import { BASE } from '../../lib/api.js';
 const TODAY = new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
@@ -69,10 +70,7 @@ export function TopBar({ settingsOpen, onAvatarClick, stravaConnected = true }) 
           className="w-8 h-8 bg-transparent border border-rule-soft grid place-items-center cursor-pointer"
           style={{ outline: settingsOpen ? '2px solid var(--brand)' : 'none', outlineOffset: '1px', transition: 'outline .1s' }}
         >
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-            <circle cx="8" cy="5.5" r="2.5" stroke="var(--ink)" strokeWidth="1.4" />
-            <path d="M2 14c0-3.3 2.7-6 6-6s6 2.7 6 6" stroke="var(--ink)" strokeWidth="1.4" strokeLinecap="round" />
-          </svg>
+          <UserIcon className="w-3.5 h-3.5" style={{ color: 'var(--ink)' }} />
         </button>
       </div>
     </div>

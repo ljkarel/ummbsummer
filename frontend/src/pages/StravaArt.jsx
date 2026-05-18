@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
+import { HeartIcon } from '@heroicons/react/24/outline';
+import { HeartIcon as HeartSolidIcon } from '@heroicons/react/24/solid';
 import { Mono, Rule, Tag } from '../components/ui.jsx';
 import { TopBar } from '../components/layout/TopBar.jsx';
 import { BottomNav } from '../components/layout/BottomNav.jsx';
@@ -42,14 +44,6 @@ function tinyMap({ svgPath, accent }) {
   );
 }
 
-function HeartIcon({ filled, c }) {
-  return (
-    <svg width="14" height="14" viewBox="0 0 16 16" style={{ display: 'block' }}>
-      <path d="M8 14s-5-3.2-5-7.2A2.8 2.8 0 0 1 8 4a2.8 2.8 0 0 1 5 2.8C13 10.8 8 14 8 14z"
-            fill={filled ? c : 'none'} stroke={c} strokeWidth="1.4" strokeLinejoin="round" />
-    </svg>
-  );
-}
 
 function WeekNav({ periods, livePeriodId, selectedPeriodId, onSelect }) {
   return (
@@ -208,7 +202,9 @@ function SubmissionTile({ s, onLike }) {
             s.liked_by_me ? 'text-brand' : 'text-ink-soft',
           ].join(' ')}
         >
-          <HeartIcon filled={s.liked_by_me} c={s.liked_by_me ? 'var(--brand)' : 'var(--ink-soft)'} />
+          {s.liked_by_me
+            ? <HeartSolidIcon className="w-3.5 h-3.5" style={{ color: 'var(--brand)' }} />
+            : <HeartIcon className="w-3.5 h-3.5" style={{ color: 'var(--ink-soft)' }} />}
           <Mono className="text-[11px] font-bold" style={{ color: 'inherit' }}>{s.likes}</Mono>
         </button>
       </div>
