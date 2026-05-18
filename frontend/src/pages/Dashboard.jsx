@@ -1,56 +1,133 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Mono, Rule, Tag, CountUp, ScoringCurve, RouteMap } from '../components/ui.jsx';
 import { TopBar } from '../components/layout/TopBar.jsx';
 import { BottomNav } from '../components/layout/BottomNav.jsx';
+import { PageFooter } from '../components/layout/PageFooter.jsx';
 import { SettingsDrawer } from '../components/SettingsDrawer.jsx';
-import { SECTIONS, WEEKS, ME, WEEK_LABEL, WEEK_DATES, FREEZE, MY_ACTIVITIES, ROUTE_PATHS } from '../lib/mock.js';
+import { getMe, getPeriods, getScoreboard, getActivities } from '../lib/api.js';
+
+const CT = 'America/Chicago';
+
+function fmtDateRange(start, end) {
+  if (!start || !end) return '';
+  const opts = { month: 'short', day: 'numeric', timeZone: CT };
+  return `${new Date(start + 'T12:00:00Z').toLocaleDateString('en-US', opts)} – ${new Date(end + 'T12:00:00Z').toLocaleDateString('en-US', opts)}`;
+}
+
+function fmtFreeze(dtStr) {
+  if (!dtStr) return '';
+  return new Date(dtStr).toLocaleString('en-US', {
+    weekday: 'short', hour: 'numeric', minute: '2-digit', timeZone: CT,
+  });
+}
+
+function fmtActivityDate(isoStr) {
+  if (!isoStr) return '';
+  return new Date(isoStr).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: CT });
+}
+
+function daysUntil(dtStr) {
+  if (!dtStr) return 0;
+  return Math.max(0, Math.ceil((new Date(dtStr) - Date.now()) / 86_400_000));
+}
+
+function periodN(period, idx) {
+  return idx + 1;
+}
 
 export default function Dashboard() {
-  const liveWeekN = useMemo(() => WEEKS.find((w) => w.state === "live")?.n || 1, []);
-  const [lbMode, setLbMode] = useState("week");
-  const [selectedWeek, setSelectedWeek] = useState(liveWeekN);
+  const [me, setMe] = useState(null);
+  const [periods, setPeriods] = useState([]);
+  const [sections, setSections] = useState([]);
+  const [activities, setActivities] = useState([]);
+  const [lbMode, setLbMode] = useState('week');
+  const [selectedPeriodId, setSelectedPeriodId] = useState(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [lbAnimated, setLbAnimated] = useState(false);
 
-  const valueFor = (s) => lbMode === "week"
-    ? s.weeks[selectedWeek - 1]
-    : s.weeks.slice(0, selectedWeek).reduce((a, b) => a + b, 0);
-  const trendFor = (s) => selectedWeek > 1
-    ? +(s.weeks[selectedWeek - 1] - s.weeks[selectedWeek - 2]).toFixed(1)
-    : 0;
-  const sectionsSorted = useMemo(
-    () => [...SECTIONS].sort((a, b) => valueFor(b) - valueFor(a)),
-    [lbMode, selectedWeek]
+  useEffect(() => {
+    Promise.all([getMe(), getPeriods(), getScoreboard(), getActivities()]).then(
+      ([meData, periodsData, sectionsData, actData]) => {
+        setMe(meData);
+        setPeriods(periodsData);
+        setSections(sectionsData);
+        setActivities(actData.results ?? []);
+        const live = periodsData.find((p) => p.state === 'live');
+        if (live) setSelectedPeriodId(live.id);
+      }
+    );
+  }, []);
+
+  useEffect(() => {
+    if (sections.length === 0) return;
+    setLbAnimated(false);
+    const id = setTimeout(() => setLbAnimated(true), 16);
+    return () => clearTimeout(id);
+  }, [lbMode, selectedPeriodId, sections.length]);
+
+  const livePeriod = useMemo(() => periods.find((p) => p.state === 'live'), [periods]);
+  const selectedPeriodIdx = useMemo(
+    () => periods.findIndex((p) => p.id === selectedPeriodId),
+    [periods, selectedPeriodId]
   );
+
+  const valueFor = (s) => {
+    if (selectedPeriodIdx < 0) return 0;
+    if (lbMode === 'week') return s.periods[selectedPeriodIdx] ?? 0;
+    return s.periods.slice(0, selectedPeriodIdx + 1).reduce((sum, v) => sum + (v ?? 0), 0);
+  };
+
+  const sectionsSorted = useMemo(
+    () => [...sections].sort((a, b) => valueFor(b) - valueFor(a)),
+    [sections, lbMode, selectedPeriodIdx]
+  );
+
+  const mySection = sections.find((s) => s.is_me);
+  const myRank = sectionsSorted.findIndex((s) => s.is_me) + 1;
+  const weekMinutes = me?.week_minutes ?? 0;
 
   return (
     <div className="w-full min-h-screen bg-bg text-ink font-sans px-9 pt-7 pb-20 relative" data-page-root>
       <TopBar settingsOpen={settingsOpen} onAvatarClick={() => setSettingsOpen((o) => !o)} />
       <Rule weight={1.5} />
-
       <SettingsDrawer open={settingsOpen} onClose={() => setSettingsOpen(false)} />
 
       {/* Hero grid */}
       <div className="grid grid-cols-1 lg:grid-cols-[1.5fr_1fr] gap-8 items-end py-[26px]">
         <div>
-          <Mono className="text-[11px] text-ink-soft tracking-[.18em] uppercase">Good morning, Jordan —</Mono>
+          <Mono className="text-[11px] text-ink-soft tracking-[.18em] uppercase">
+            {me ? `Hey ${me.name} —` : 'Loading…'}
+          </Mono>
           <h1 className="font-tight font-extrabold text-[56px] leading-[1.02] tracking-[-0.035em] mt-2 m-0 [text-wrap:balance]">
-            <Mono className="font-tight font-extrabold text-[inherit] tracking-[-0.035em] text-brand">168</Mono> minutes banked this week, Jordan.
+            <Mono className="font-tight font-extrabold text-[inherit] tracking-[-0.035em] text-brand">
+              {weekMinutes}
+            </Mono>{' '}
+            minutes banked this week.
           </h1>
           <div className="flex gap-2.5 mt-4 flex-wrap">
-            <Tag t={`${ME.section} · #${ME.sectionRank} of ${ME.sectionSize}`} className="bg-chip text-chip-ink" />
-            <Tag t={`Streak · ${ME.streak} days`} className="text-ink border border-rule-soft" />
-            <Tag t={`Season total · ${ME.totalPoints} pts`} className="text-ink border border-rule-soft" />
+            {mySection && myRank > 0 && (
+              <Tag t={`${mySection.name} · #${myRank} of ${sections.length}`} className="bg-chip text-chip-ink" />
+            )}
+            <Tag t={`Streak · ${me?.streak ?? 0} days`} className="text-ink border border-rule-soft" />
+            <Tag t={`Season total · ${me?.total_points?.toFixed(1) ?? 0} pts`} className="text-ink border border-rule-soft" />
           </div>
         </div>
         <div className="bg-panel px-5 py-[18px] border border-rule-soft">
           <div className="flex justify-between items-center mb-2.5">
-            <Mono className="text-[11px] tracking-[.14em] uppercase text-ink-soft">{WEEK_LABEL}</Mono>
-            <Tag t="LIVE" className="bg-brand text-panel" />
+            <Mono className="text-[11px] tracking-[.14em] uppercase text-ink-soft">
+              {livePeriod?.name ?? '—'}
+            </Mono>
+            {livePeriod && <Tag t="LIVE" className="bg-brand text-panel" />}
           </div>
-          <div className="font-tight font-bold text-[22px] tracking-[-0.02em]">{WEEK_DATES}</div>
-          <div className="mt-2.5 text-xs text-ink-soft">
-            Snapshot freezes <strong className="text-ink">{FREEZE}</strong>. Section averages lock in for the parent competition.
+          <div className="font-tight font-bold text-[22px] tracking-[-0.02em]">
+            {livePeriod ? fmtDateRange(livePeriod.start_date, livePeriod.end_date) : '—'}
           </div>
+          {livePeriod && (
+            <div className="mt-2.5 text-xs text-ink-soft">
+              Snapshot freezes <strong className="text-ink">{fmtFreeze(livePeriod.freeze_datetime)}</strong>. Section averages lock in for the parent competition.
+            </div>
+          )}
         </div>
       </div>
 
@@ -59,15 +136,15 @@ export default function Dashboard() {
       {/* Stats 4-col */}
       <div className="grid grid-cols-2 lg:grid-cols-4 border-b border-rule-soft">
         {[
-          { k: "MINUTES THIS WEEK", v: ME.weekMinutes, sub: `across 4 activities`,                    accent: "text-brand"    },
-          { k: "POINTS THIS WEEK",  v: ME.weekPoints,  sub: `+${ME.weekPoints - 142} vs. last week`,  accent: "text-accent-2" },
-          { k: "SECTION RANK",      v: `#${ME.sectionRank}`, sub: `${ME.section} · ${ME.sectionSize} members`, accent: "text-ink" },
-          { k: "DAYS LEFT IN WEEK", v: 4,              sub: `until ${FREEZE}`,                        accent: "text-accent"   },
+          { k: 'MINUTES THIS WEEK', v: weekMinutes, sub: `${activities.length} recent activities`, accent: 'text-brand' },
+          { k: 'POINTS THIS WEEK', v: me?.week_points ?? 0, sub: `${me?.total_points?.toFixed(1) ?? 0} pts this season`, accent: 'text-accent-2' },
+          { k: 'SECTION RANK', v: myRank > 0 ? `#${myRank}` : '—', sub: mySection ? `${mySection.name} · ${mySection.members} members` : '—', accent: 'text-ink' },
+          { k: 'DAYS LEFT IN WEEK', v: livePeriod ? daysUntil(livePeriod.freeze_datetime) : 0, sub: livePeriod ? `until ${fmtFreeze(livePeriod.freeze_datetime)}` : '—', accent: 'text-accent' },
         ].map((s, i) =>
-          <div key={s.k} className={`px-[22px] pt-[22px] pb-[26px]${i ? " border-l border-rule-soft" : ""}`}>
+          <div key={s.k} className={`px-[22px] pt-[22px] pb-[26px]${i ? ' border-l border-rule-soft' : ''}`}>
             <Mono className="text-[10px] tracking-[.16em] text-ink-soft">{s.k}</Mono>
             <div className={`font-tight font-extrabold text-[52px] leading-none tracking-[-0.04em] mt-2 ${s.accent}`}>
-              {typeof s.v === "number" ? <CountUp to={s.v} /> : s.v}
+              {typeof s.v === 'number' ? <CountUp to={s.v} /> : s.v}
             </div>
             <div className="text-xs text-ink-soft mt-1.5">{s.sub}</div>
           </div>
@@ -80,46 +157,57 @@ export default function Dashboard() {
           <div className="flex items-baseline justify-between mb-2.5">
             <h2 className="font-tight font-extrabold text-[22px] tracking-[-0.02em] m-0">Section leaderboard</h2>
             <div className="flex items-center gap-1.5 p-[3px] border border-rule-soft">
-              {[{ v: "week", label: "This Week" }, { v: "season", label: "Season Total" }].map((o) =>
+              {[{ v: 'week', label: 'This Week' }, { v: 'season', label: 'Season Total' }].map((o) =>
                 <button key={o.v} onClick={() => setLbMode(o.v)}
-                  className={`font-mono text-[10px] tracking-[.12em] uppercase px-2.5 py-[5px] border-none cursor-pointer${lbMode === o.v ? " bg-ink text-panel font-bold" : " bg-transparent text-ink-soft font-medium"}`}>
+                  className={`font-mono text-[10px] tracking-[.12em] uppercase px-2.5 py-[5px] border-none cursor-pointer${lbMode === o.v ? ' bg-ink text-panel font-bold' : ' bg-transparent text-ink-soft font-medium'}`}>
                   {o.label}
                 </button>
               )}
             </div>
           </div>
           <Rule weight={1.5} />
-          {/* Leaderboard header */}
-          <div className="border-b border-rule-soft" style={{ display: "grid", gridTemplateColumns: "28px 1.4fr 2.5fr 70px 28px", gap: 12, padding: "10px 0 8px" }}>
+          <div className="border-b border-rule-soft" style={{ display: 'grid', gridTemplateColumns: '28px 1.4fr 2.5fr 70px 28px', gap: 12, padding: '10px 0 8px' }}>
             <Mono className="text-[9px] text-ink-soft tracking-[.14em]">#</Mono>
             <Mono className="text-[9px] text-ink-soft tracking-[.14em]">SECTION</Mono>
-            <Mono className="text-[9px] text-ink-soft tracking-[.14em]">{lbMode === "week" ? `AVG PTS / MEMBER · WK ${String(selectedWeek).padStart(2, "0")}${selectedWeek === liveWeekN ? " (LIVE)" : ""}` : `Σ WEEKLY AVGS · THRU WK ${String(selectedWeek).padStart(2, "0")}`}</Mono>
-            <Mono className="text-[9px] text-ink-soft tracking-[.14em] text-right">{lbMode === "week" ? "PTS" : "TOTAL"}</Mono>
+            <Mono className="text-[9px] text-ink-soft tracking-[.14em]">
+              {lbMode === 'week'
+                ? `AVG PTS · ${selectedPeriodIdx >= 0 ? `WK ${String(selectedPeriodIdx + 1).padStart(2, '0')}` : '—'}${livePeriod && selectedPeriodId === livePeriod.id ? ' (LIVE)' : ''}`
+                : `Σ WEEKLY AVGS · THRU WK ${selectedPeriodIdx >= 0 ? String(selectedPeriodIdx + 1).padStart(2, '0') : '—'}`}
+            </Mono>
+            <Mono className="text-[9px] text-ink-soft tracking-[.14em] text-right">{lbMode === 'week' ? 'PTS' : 'TOTAL'}</Mono>
             <Mono className="text-[9px] text-ink-soft tracking-[.14em] text-right">Δ</Mono>
           </div>
           <div>
             {sectionsSorted.map((s, i) => {
               const value = valueFor(s);
-              const max = valueFor(sectionsSorted[0]);
-              const w = value / max * 100;
+              const max = valueFor(sectionsSorted[0]) || 1;
+              const w = (value / max) * 100;
               const isTop = i === 0;
-              const trend = trendFor(s);
+              const trend = s.trend ?? 0;
               return (
-                <div key={s.name} className={`border-b border-rule-soft items-center${s.isMe ? " bg-black/[.025]" : " bg-transparent"}`}
-                  style={{ display: "grid", gridTemplateColumns: "28px 1.4fr 2.5fr 70px 28px", alignItems: "center", gap: 12, padding: "12px 0" }}>
-                  <Mono className={`text-[13px]${isTop ? " text-brand font-bold" : " text-ink-soft font-medium"}`}>{String(i + 1).padStart(2, "0")}</Mono>
+                <div key={s.name}
+                  className={`border-b border-rule-soft items-center${s.is_me ? ' bg-black/[.025]' : ' bg-transparent'}`}
+                  style={{ display: 'grid', gridTemplateColumns: '28px 1.4fr 2.5fr 70px 28px', alignItems: 'center', gap: 12, padding: '12px 0' }}>
+                  <Mono className={`text-[13px]${isTop ? ' text-brand font-bold' : ' text-ink-soft font-medium'}`}>{String(i + 1).padStart(2, '0')}</Mono>
                   <div className="flex items-center gap-2">
-                    <span className={`text-[15px] tracking-[-0.01em]${s.isMe ? " font-bold" : " font-semibold"}`}>{s.name}</span>
-                    {s.isMe && <Tag t="YOU" className="bg-chip text-chip-ink" />}
+                    <span className={`text-[15px] tracking-[-0.01em]${s.is_me ? ' font-bold' : ' font-semibold'}`}>{s.name}</span>
+                    {s.is_me && <Tag t="YOU" className="bg-chip text-chip-ink" />}
                   </div>
                   <div className="relative h-[10px]">
-                    <div className="absolute inset-0 bg-rule-soft" style={{ height: 1, top: "50%" }} />
+                    <div className="absolute inset-0 bg-rule-soft" style={{ height: 1, top: '50%' }} />
                     <div className="absolute left-0 top-0 bottom-0"
-                      style={{ width: `${w}%`, background: isTop ? "var(--brand)" : s.isMe ? "var(--accent-2)" : "var(--accent)", opacity: isTop ? 1 : s.isMe ? 0.95 : 0.7 }} />
+                      style={{
+                        width: lbAnimated ? `${w}%` : '0%',
+                        background: isTop ? 'var(--brand)' : s.is_me ? 'var(--accent-2)' : 'var(--accent)',
+                        opacity: isTop ? 1 : s.is_me ? 0.95 : 0.7,
+                        transition: lbAnimated ? `width 0.55s cubic-bezier(0.2, 0.7, 0.3, 1) ${i * 35}ms` : 'none',
+                      }} />
                   </div>
-                  <Mono className="text-right text-[15px] font-bold text-ink">{value.toFixed(1)}</Mono>
-                  <Mono className={`text-right text-[11px]${trend > 0 ? " text-good" : trend < 0 ? " text-brand" : " text-ink-soft"}`}>
-                    {trend > 0 ? `▲${Math.abs(trend).toFixed(1)}` : trend < 0 ? `▼${Math.abs(trend).toFixed(1)}` : "—"}
+                  <Mono className="text-right text-[15px] font-bold text-ink">
+                    <CountUp key={`${selectedPeriodId}-${lbMode}`} to={value} dur={700} format={(v) => v.toFixed(1)} />
+                  </Mono>
+                  <Mono className={`text-right text-[11px]${trend > 0 ? ' text-good' : trend < 0 ? ' text-brand' : ' text-ink-soft'}`}>
+                    {trend > 0 ? `▲${Math.abs(trend)}` : trend < 0 ? `▼${Math.abs(trend)}` : '—'}
                   </Mono>
                 </div>
               );
@@ -128,37 +216,37 @@ export default function Dashboard() {
         </section>
 
         <section className="flex flex-col gap-6">
-          {/* Scoring curve card */}
+          {/* Scoring curve */}
           <div className="bg-panel px-5 pt-[18px] pb-[14px] border border-rule-soft">
             <div className="flex justify-between items-baseline mb-2">
               <div>
                 <h3 className="font-tight font-extrabold text-lg m-0 tracking-[-0.01em]">How points are scored</h3>
                 <div className="text-[11px] text-ink-soft mt-0.5">1 pt/min up to 210 min/wk · diminishing thereafter</div>
               </div>
-              <Mono className="text-[11px] text-brand font-bold">YOU · {ME.weekMinutes} MIN</Mono>
+              <Mono className="text-[11px] text-brand font-bold">YOU · {weekMinutes} MIN</Mono>
             </div>
-            <ScoringCurve current={ME.weekMinutes} />
+            <ScoringCurve current={weekMinutes} />
           </div>
 
           {/* Timeline */}
           <div>
             <div className="flex justify-between items-baseline mb-2.5">
               <h3 className="font-tight font-extrabold text-lg m-0 tracking-[-0.01em]">Competition timeline</h3>
-              <Mono className="text-[11px] text-ink-soft">Summer '26 · 8 weeks</Mono>
+              <Mono className="text-[11px] text-ink-soft">Summer '26 · {periods.length} weeks</Mono>
             </div>
-            <div className="grid gap-1.5" style={{ gridTemplateColumns: "repeat(8, 1fr)" }}>
-              {WEEKS.map((w) => {
-                const isLive = w.state === "live";
-                const isDone = w.state === "done";
-                const isSoon = w.state === "soon";
-                const isSel = w.n === selectedWeek;
-                const clickable = !isSoon;
+            <div className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${periods.length || 8}, 1fr)` }}>
+              {periods.map((p, idx) => {
+                const isLive = p.state === 'live';
+                const isDone = p.state === 'done';
+                const isFuture = p.state === 'future';
+                const isSel = p.id === selectedPeriodId;
+                const clickable = !isFuture;
                 return (
-                  <button key={w.n} onClick={() => clickable && setSelectedWeek(w.n)} disabled={!clickable}
-                    className={`text-center flex flex-col justify-center items-center gap-1 font-sans outline-none transition-[border-color] duration-[.15s] min-h-[56px] py-3 pb-2.5${isLive ? " bg-brand text-panel" : isDone ? " bg-panel-alt text-ink" : " bg-transparent text-ink"}${isSel ? " border-2 border-brand" : isSoon ? " border border-rule-soft" : " border border-transparent"}${isSoon ? " opacity-50" : ""}${clickable ? " cursor-pointer" : " cursor-not-allowed"}`}>
-                    <Mono className="text-[9px] opacity-70 tracking-[.14em]">WK {String(w.n).padStart(2, "0")}</Mono>
-                    {w.you != null
-                      ? <Mono className="text-sm font-bold tracking-[-0.01em]">{w.you}</Mono>
+                  <button key={p.id} onClick={() => clickable && setSelectedPeriodId(p.id)} disabled={!clickable}
+                    className={`text-center flex flex-col justify-center items-center gap-1 font-sans outline-none transition-[border-color] duration-[.15s] min-h-[56px] py-3 pb-2.5${isLive ? ' bg-brand text-panel' : isDone ? ' bg-panel-alt text-ink' : ' bg-transparent text-ink'}${isSel ? ' border-2 border-brand' : isFuture ? ' border border-rule-soft' : ' border border-transparent'}${isFuture ? ' opacity-50' : ''}${clickable ? ' cursor-pointer' : ' cursor-not-allowed'}`}>
+                    <Mono className="text-[9px] opacity-70 tracking-[.14em]">WK {String(idx + 1).padStart(2, '0')}</Mono>
+                    {p.you != null
+                      ? <Mono className="text-sm font-bold tracking-[-0.01em]">{p.you.toFixed(1)}</Mono>
                       : <Mono className="text-sm font-medium opacity-50">—</Mono>}
                   </button>
                 );
@@ -166,43 +254,32 @@ export default function Dashboard() {
             </div>
             <div className="flex justify-between mt-2">
               <Mono className="text-[10px] text-ink-soft tracking-[.1em] uppercase">Click a week to filter the leaderboard</Mono>
-              <Mono className="text-[10px] text-ink-soft tracking-[.1em] uppercase">Viewing · WK {String(selectedWeek).padStart(2, "0")}</Mono>
+              <Mono className="text-[10px] text-ink-soft tracking-[.1em] uppercase">
+                Viewing · WK {selectedPeriodIdx >= 0 ? String(selectedPeriodIdx + 1).padStart(2, '0') : '—'}
+              </Mono>
             </div>
           </div>
         </section>
       </div>
 
-      {/* Strava Art */}
-      <div className="mt-9">
-        <div className="flex items-baseline justify-between mb-2.5">
-          <h2 className="font-tight font-extrabold text-[22px] tracking-[-0.02em] m-0">Strava Art</h2>
-          <Mono className="text-[11px] text-ink-soft tracking-[.1em] uppercase">Week 3 · Make an M for Minnesota</Mono>
-        </div>
-        <Rule weight={1.5} />
-        <div className="grid grid-cols-1 sm:grid-cols-[160px_1fr_auto] gap-6 items-center py-5 pb-6">
-          <div className="aspect-square bg-panel-alt border border-rule-soft overflow-hidden">
-            <svg viewBox="0 0 100 90" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">
-              <path d="M10 78 L 26 18 L 44 60 L 62 18 L 80 78" fill="none" stroke="var(--brand)" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
-            </svg>
+      {/* Strava Art callout */}
+      {livePeriod && (
+        <div className="mt-9">
+          <div className="flex items-baseline justify-between mb-2.5">
+            <h2 className="font-tight font-extrabold text-[22px] tracking-[-0.02em] m-0">Strava Art</h2>
+            <Mono className="text-[11px] text-ink-soft tracking-[.1em] uppercase">
+              {livePeriod.name} · theme TBD
+            </Mono>
           </div>
-          <div>
-            <Mono className="text-[10px] text-ink-soft tracking-[.18em] uppercase">Your submission · Public</Mono>
-            <div className="font-tight font-extrabold text-[32px] tracking-[-0.025em] mt-1">Stadium M</div>
-            <div className="flex gap-[18px] mt-2.5 items-center flex-wrap">
-              <span className="inline-flex items-center gap-1.5 text-brand">
-                <svg width="14" height="14" viewBox="0 0 16 16" className="block"><path d="M8 14s-5-3.2-5-7.2A2.8 2.8 0 0 1 8 4a2.8 2.8 0 0 1 5 2.8C13 10.8 8 14 8 14z" fill="var(--brand)" stroke="var(--brand)" strokeWidth="1.4" strokeLinejoin="round" /></svg>
-                <Mono className="text-sm font-bold">14 likes</Mono>
-              </span>
-              <Mono className="text-[11px] text-ink-soft tracking-[.08em] uppercase">6 entries on the wall so far</Mono>
-            </div>
-            <Mono className="block mt-2 text-[11px] text-ink-soft">Submitted Tue · Jul 7 · 8:42pm. You can revise until Sun 11:59pm.</Mono>
-          </div>
-          <div className="flex flex-col gap-2">
-            <button className="px-[22px] py-3 bg-ink text-panel border-none font-tight font-bold text-[13px] tracking-[.06em] uppercase cursor-pointer whitespace-nowrap">View on wall →</button>
-            <button className="px-[22px] py-2.5 bg-transparent text-ink border border-rule font-tight font-bold text-xs tracking-[.06em] uppercase cursor-pointer whitespace-nowrap">Update artwork</button>
+          <Rule weight={1.5} />
+          <div className="py-5 flex items-center gap-5">
+            <p className="text-ink-soft text-sm m-0">Turn your workout route into art. Submit a route for this week's challenge.</p>
+            <Link to="/art" className="ml-auto px-[22px] py-3 bg-ink text-panel border-none font-tight font-bold text-[13px] tracking-[.06em] uppercase cursor-pointer whitespace-nowrap no-underline">
+              View art wall →
+            </Link>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Activity feed */}
       <div className="mt-9">
@@ -216,31 +293,36 @@ export default function Dashboard() {
           </div>
         </div>
         <Rule weight={1.5} />
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-          {MY_ACTIVITIES.slice(0, 4).map((a, i) =>
-            <div key={i} className={`px-[18px] pt-4 pb-[18px]${i < 3 ? " border-r border-rule-soft" : ""}`}>
-              <div className="aspect-[10/7] bg-panel-alt mb-3 border border-rule-soft overflow-hidden">
-                <RouteMap kind={a.route} />
+        {activities.length === 0 ? (
+          <div className="py-10 text-center text-ink-soft text-sm">No activities yet. Log a workout on Strava and it will sync here.</div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+            {activities.slice(0, 4).map((a, i) =>
+              <div key={a.activity_id} className={`px-[18px] pt-4 pb-[18px]${i < 3 ? ' border-r border-rule-soft' : ''}`}>
+                <div className="aspect-[10/7] bg-panel-alt mb-3 border border-rule-soft overflow-hidden">
+                  <RouteMap svgPath={a.svg_path} />
+                </div>
+                <div className="flex justify-between items-center mb-1">
+                  <Mono className="text-[10px] text-ink-soft tracking-[.12em] uppercase">{fmtActivityDate(a.datetime)}</Mono>
+                  <Tag t={a.sport_type} className="text-ink border border-rule-soft" />
+                </div>
+                <div className="font-bold text-[15px] tracking-[-0.01em] my-1 mb-2">{a.name}</div>
+                <div className="grid grid-cols-3 gap-2 font-mono text-[11px] text-ink-soft">
+                  <div><div className="text-ink font-semibold">{a.minutes} min</div>time</div>
+                  <div><div className="text-ink font-semibold">{a.distance > 0 ? `${a.distance.toFixed(1)} mi` : '—'}</div>dist</div>
+                  <div><div className="text-ink font-semibold">{a.elevation_gain > 0 ? `${Math.round(a.elevation_gain)} ft` : '—'}</div>elev</div>
+                </div>
+                <div className="mt-3 flex items-center justify-between">
+                  <Mono className="text-[11px] text-ink-soft">POINTS</Mono>
+                  <Mono className="text-lg font-extrabold text-brand">+{a.points?.toFixed(1) ?? 0}</Mono>
+                </div>
               </div>
-              <div className="flex justify-between items-center mb-1">
-                <Mono className="text-[10px] text-ink-soft tracking-[.12em] uppercase">{a.day}</Mono>
-                <Tag t={a.sport} className="text-ink border border-rule-soft" />
-              </div>
-              <div className="font-bold text-[15px] tracking-[-0.01em] my-1 mb-2">{a.title}</div>
-              <div className="grid grid-cols-3 gap-2 font-mono text-[11px] text-ink-soft">
-                <div><div className="text-ink font-semibold">{a.dur}</div>time</div>
-                <div><div className="text-ink font-semibold">{a.dist}</div>dist</div>
-                <div><div className="text-ink font-semibold">{a.elev}</div>elev</div>
-              </div>
-              <div className="mt-3 flex items-center justify-between">
-                <Mono className="text-[11px] text-ink-soft">POINTS</Mono>
-                <Mono className="text-lg font-extrabold text-brand">+{a.pts}</Mono>
-              </div>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
       </div>
 
+      <PageFooter />
       <BottomNav />
     </div>
   );

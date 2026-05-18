@@ -1,8 +1,11 @@
+from django.db.models import Sum
 from django.shortcuts import get_object_or_404
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from members.models import Section
+from activities.models import Activity
+from members.models import Member, Section
 from members.utils import get_active_competition
 
 from .models import CompetitionPeriod, SectionPeriodScore
@@ -62,14 +65,26 @@ class PeriodListView(APIView):
         member = request.user.member
         periods = competition.periods.order_by('start_date')
         result = []
+        live_found = False
         for period in periods:
+            # At most one period can be live at a time. During the window between
+            # a period's start_date (UTC midnight) and its predecessor's freeze
+            # time, both periods would naively compute as 'live'. Clamp the second
+            # one back to 'future' so the frontend always sees exactly one live period.
+            state = period.state
+            if state == 'live':
+                if live_found:
+                    state = 'future'
+                else:
+                    live_found = True
+
             you = None
-            if period.state != 'future':
+            if state != 'future':
                 you = round(compute_member_points_for_period(member, period), 2)
             result.append({
                 'id': period.pk,
                 'name': period.name,
-                'state': period.state,
+                'state': state,
                 'start_date': period.start_date,
                 'end_date': period.end_date,
                 'freeze_datetime': period.freeze_datetime,
@@ -147,3 +162,38 @@ class ScoreboardView(APIView):
 
         result.sort(key=lambda x: x['season'], reverse=True)
         return Response(ScoreboardSectionSerializer(result, many=True).data)
+
+
+class PublicStatsView(APIView):
+    """GET /api/metrics/public/ — unauthenticated competition overview for the sign-in page."""
+
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        competition = get_active_competition()
+        if competition is None:
+            return Response({})
+
+        periods = list(competition.periods.order_by('start_date'))
+        live_period_n = None
+        live_found = False
+        for i, p in enumerate(periods):
+            state = p.state
+            if state == 'live':
+                if not live_found:
+                    live_period_n = i + 1
+                    live_found = True
+
+        total_minutes = Activity.objects.aggregate(t=Sum('minutes'))['t'] or 0
+        member_count = Member.objects.count()
+        section_count = Section.objects.count()
+
+        return Response({
+            'start_date': competition.start_date,
+            'end_date': competition.end_date,
+            'total_periods': len(periods),
+            'live_period_n': live_period_n,
+            'total_minutes': total_minutes,
+            'member_count': member_count,
+            'section_count': section_count,
+        })

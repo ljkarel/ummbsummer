@@ -56,6 +56,7 @@ class MemberMeView(APIView):
             'strava_connected': hasattr(member, 'strava_auth'),
             'nickname': getattr(member.preferences, 'nickname', None),
             'preferred_email': getattr(member.preferences, 'preferred_email', None),
+            'roster_email': member.email,
         }
         return Response(MemberMeSerializer(data).data)
 

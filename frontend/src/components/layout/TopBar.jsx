@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { Mono } from '../ui.jsx';
-import { TODAY } from '../../lib/mock.js';
+const TODAY = new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 
 const NAV_ITEMS = [
   { label: 'Dashboard',   to: '/'            },

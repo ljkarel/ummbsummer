@@ -1,5 +1,6 @@
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useRef, useState } from 'react';
 import { Mono } from './ui.jsx';
+import { getMe, patchMe, logout } from '../lib/api.js';
 
 function SectionHeader({ children }) {
   return (
@@ -9,22 +10,48 @@ function SectionHeader({ children }) {
   );
 }
 
-function FormRow({ label, defaultValue, type = 'text', placeholder }) {
-  return (
-    <div className="mb-3">
-      <Mono className="text-[10px] text-ink-soft tracking-[.14em] uppercase">{label}</Mono>
-      <input
-        type={type}
-        defaultValue={defaultValue}
-        placeholder={placeholder}
-        className="block mt-1 w-full px-[11px] py-[9px] border border-rule bg-bg text-ink font-sans text-[13px] tracking-[-0.005em] outline-none box-border"
-      />
-    </div>
-  );
-}
-
 export function SettingsDrawer({ open, onClose }) {
-  const navigate = useNavigate();
+  const [me, setMe] = useState(null);
+  const [nickname, setNickname] = useState('');
+  const [preferredEmail, setPreferredEmail] = useState('');
+  const [saveStatus, setSaveStatus] = useState('idle'); // idle | saving | saved
+  const saveTimer = useRef(null);
+  const initialized = useRef(false);
+
+  useEffect(() => {
+    if (!open) return;
+    initialized.current = false;
+    getMe().then((data) => {
+      setMe(data);
+      if (!initialized.current) {
+        setNickname(data.nickname ?? '');
+        setPreferredEmail(data.preferred_email ?? '');
+        initialized.current = true;
+      }
+    });
+  }, [open]);
+
+  async function save(nick, email) {
+    setSaveStatus('saving');
+    try {
+      await patchMe({ nickname: nick || null, preferredEmail: email || null });
+      setSaveStatus('saved');
+      clearTimeout(saveTimer.current);
+      saveTimer.current = setTimeout(() => setSaveStatus('idle'), 2000);
+    } catch {
+      setSaveStatus('idle');
+    }
+  }
+
+  function handleBlur() {
+    save(nickname, preferredEmail);
+  }
+
+  async function handleSignOut() {
+    try { await logout(); } catch { /* ignore */ }
+    window.location.href = '/signin';
+  }
+
   if (!open) return null;
 
   return (
@@ -48,7 +75,7 @@ export function SettingsDrawer({ open, onClose }) {
         <div className="flex justify-between items-center px-5 pt-4 pb-3.5 border-b border-rule-soft">
           <div>
             <div className="font-tight font-extrabold text-[20px] tracking-[-0.02em]">Settings</div>
-            <Mono className="block mt-0.5 text-[11px] text-ink-soft">jordan.mehta@umn.edu</Mono>
+            <Mono className="block mt-0.5 text-[11px] text-ink-soft">{me?.roster_email ?? '…'}</Mono>
           </div>
           <button
             onClick={onClose}
@@ -60,9 +87,30 @@ export function SettingsDrawer({ open, onClose }) {
         {/* Profile */}
         <div className="px-5 pt-4 pb-2">
           <SectionHeader>Profile</SectionHeader>
-          <FormRow label="Preferred name" defaultValue="Jordan" />
-          <FormRow label="Nickname (shown in chips)" defaultValue="JM" />
-          <FormRow label="Preferred contact email" type="email" defaultValue="jordan@gmail.com" placeholder="you@example.com" />
+
+          <div className="mb-3">
+            <Mono className="text-[10px] text-ink-soft tracking-[.14em] uppercase">Preferred name</Mono>
+            <input
+              type="text"
+              value={nickname}
+              onChange={(e) => setNickname(e.target.value)}
+              onBlur={handleBlur}
+              placeholder={me?.name ?? ''}
+              className="block mt-1 w-full px-[11px] py-[9px] border border-rule bg-bg text-ink font-sans text-[13px] tracking-[-0.005em] outline-none box-border"
+            />
+          </div>
+
+          <div className="mb-3">
+            <Mono className="text-[10px] text-ink-soft tracking-[.14em] uppercase">Preferred contact email</Mono>
+            <input
+              type="email"
+              value={preferredEmail}
+              onChange={(e) => setPreferredEmail(e.target.value)}
+              onBlur={handleBlur}
+              placeholder={me?.roster_email ?? ''}
+              className="block mt-1 w-full px-[11px] py-[9px] border border-rule bg-bg text-ink font-sans text-[13px] tracking-[-0.005em] outline-none box-border"
+            />
+          </div>
         </div>
 
         <div className="h-px bg-rule-soft mx-5" />
@@ -70,27 +118,25 @@ export function SettingsDrawer({ open, onClose }) {
         {/* Strava */}
         <div className="px-5 py-4">
           <SectionHeader>Strava connection</SectionHeader>
-          <div className="px-3.5 py-3 bg-panel-alt border border-rule-soft">
-            <div className="flex justify-between items-center mb-2">
-              <span className="inline-flex items-center gap-2">
-                <span className="w-[7px] h-[7px] rounded-full bg-good" />
-                <span className="font-bold text-[13px]">
-                  Connected as <Mono className="text-xs">@jordan.m</Mono>
+          {me?.strava_connected ? (
+            <div className="px-3.5 py-3 bg-panel-alt border border-rule-soft">
+              <div className="flex justify-between items-center mb-2">
+                <span className="inline-flex items-center gap-2">
+                  <span className="w-[7px] h-[7px] rounded-full bg-good" />
+                  <span className="font-bold text-[13px]">Connected</span>
                 </span>
-              </span>
+              </div>
+              <Mono className="block text-[10px] text-ink-soft tracking-[.14em] uppercase mt-1.5 mb-1.5">Scopes</Mono>
+              <ul className="m-0 p-0 list-none text-[12.5px] text-ink leading-[1.7]">
+                <li><span className="text-good font-bold mr-2 font-mono">✓</span>activity:read_all</li>
+                <li className="text-ink-soft"><span className="text-brand font-bold mr-2 font-mono">✗</span>activity:write</li>
+              </ul>
             </div>
-            <Mono className="block text-[10px] text-ink-soft tracking-[.14em] uppercase mt-1.5 mb-1.5">Scopes</Mono>
-            <ul className="m-0 p-0 list-none text-[12.5px] text-ink leading-[1.7]">
-              <li><span className="text-good font-bold mr-2 font-mono">✓</span>activity:read_all</li>
-              <li><span className="text-good font-bold mr-2 font-mono">✓</span>profile:read_all</li>
-              <li className="text-ink-soft"><span className="text-brand font-bold mr-2 font-mono">✗</span>activity:write</li>
-              <li className="text-ink-soft"><span className="text-brand font-bold mr-2 font-mono">✗</span>profile:write</li>
-            </ul>
-          </div>
-          <div className="flex gap-2 mt-3">
-            <button className="flex-1 py-2.5 px-3.5 bg-ink text-panel border-none font-tight font-bold text-xs tracking-[.06em] uppercase cursor-pointer">Reconnect</button>
-            <button className="flex-1 py-2.5 px-3.5 bg-transparent text-brand border border-brand font-tight font-bold text-xs tracking-[.06em] uppercase cursor-pointer">Revoke access</button>
-          </div>
+          ) : (
+            <div className="px-3.5 py-3 bg-panel-alt border border-rule-soft text-[13px] text-ink-soft">
+              Not connected.
+            </div>
+          )}
           <Mono className="block mt-2 text-[10.5px] text-ink-soft leading-[1.4]">
             Revoking will stop activity syncs. You can reconnect any time before the season ends.
           </Mono>
@@ -101,11 +147,12 @@ export function SettingsDrawer({ open, onClose }) {
         {/* Footer */}
         <div className="px-5 py-3 flex justify-between items-center">
           <Mono className="text-[11px] text-ink-soft inline-flex items-center gap-1.5">
-            <span className="w-[5px] h-[5px] rounded-full bg-good" />
-            Auto-saved
+            {saveStatus === 'saving' && <><span className="w-[5px] h-[5px] rounded-full bg-ink-soft" /> Saving…</>}
+            {saveStatus === 'saved'  && <><span className="w-[5px] h-[5px] rounded-full bg-good" /> Saved</>}
+            {saveStatus === 'idle'   && <><span className="w-[5px] h-[5px] rounded-full bg-good" /> Auto-saved</>}
           </Mono>
           <button
-            onClick={() => { onClose(); navigate('/signin'); }}
+            onClick={handleSignOut}
             className="bg-transparent border-none text-ink-soft font-tight font-bold text-xs tracking-[.06em] uppercase cursor-pointer"
           >
             Sign out

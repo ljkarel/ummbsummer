@@ -45,12 +45,12 @@ class CompetitionPeriod(models.Model):
     @property
     def state(self):
         now = timezone.now()
-        freeze = self.freeze_datetime or datetime.datetime.combine(
-            self.end_date, datetime.time(23, 59, 59), tzinfo=datetime.timezone.utc
+        freeze = self.freeze_datetime or timezone.make_aware(
+            datetime.datetime.combine(self.end_date, datetime.time(23, 59, 59))
         )
         if now >= freeze:
             return 'done'
-        if now.date() >= self.start_date:
+        if timezone.localtime(now).date() >= self.start_date:
             return 'live'
         return 'future'
 

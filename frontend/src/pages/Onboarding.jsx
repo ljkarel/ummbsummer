@@ -1,5 +1,7 @@
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Mono, Rule, StaffLines } from '../components/ui.jsx';
+import { BASE, getMe, patchMe, getPeriods } from '../lib/api.js';
 
 function Stepper({ step, total }) {
   return (
@@ -48,12 +50,11 @@ function OnboardingShell({ children, step = 1, total = 2 }) {
 }
 
 export function OnboardingStrava() {
-  const navigate = useNavigate();
   return (
     <OnboardingShell step={1} total={2}>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center max-w-[1100px] w-full">
         <div>
-          <Mono className="text-[11px] text-ink-soft tracking-[.18em] uppercase">Hey Jordan — let's get you set up.</Mono>
+          <Mono className="text-[11px] text-ink-soft tracking-[.18em] uppercase">Let's get you set up.</Mono>
           <h1 className="font-tight font-extrabold text-[64px] leading-[0.98] tracking-[-0.04em] mt-2.5 text-balance">
             Connect <span className="text-brand">Strava</span> to sync your workouts.
           </h1>
@@ -62,7 +63,7 @@ export function OnboardingStrava() {
           </p>
 
           <button
-            onClick={() => navigate('/onboarding/profile')}
+            onClick={() => { window.location.href = `${BASE}/api/strava/init/`; }}
             className="inline-flex items-center gap-3 mt-6 px-7 py-4 bg-brand text-panel border-none cursor-pointer font-tight font-bold text-base tracking-[-0.005em]"
             style={{ boxShadow: "0 6px 0 var(--ink)" }}
           >
@@ -103,12 +104,39 @@ export function OnboardingStrava() {
 
 export function OnboardingProfile() {
   const navigate = useNavigate();
+  const [me, setMe] = useState(null);
+  const [nickname, setNickname] = useState('');
+  const [preferredEmail, setPreferredEmail] = useState('');
+  const [saving, setSaving] = useState(false);
+  const initialized = useRef(false);
+
+  useEffect(() => {
+    getMe().then((data) => {
+      setMe(data);
+      if (!initialized.current) {
+        setNickname(data.nickname ?? data.name ?? '');
+        setPreferredEmail(data.preferred_email ?? data.roster_email ?? '');
+        initialized.current = true;
+      }
+    });
+  }, []);
+
+  async function handleSave() {
+    setSaving(true);
+    try {
+      await patchMe({ nickname: nickname || null, preferredEmail: preferredEmail || null });
+      navigate('/onboarding/done');
+    } finally {
+      setSaving(false);
+    }
+  }
+
   return (
     <OnboardingShell step={2} total={2}>
       <div className="max-w-[640px] w-full">
         <Mono className="text-[11px] text-ink-soft tracking-[.18em] uppercase block">
           Almost there ·
-          <span className="text-good ml-1.5 tracking-[.18em]">● Strava connected as @jordan.m</span>
+          <span className="text-good ml-1.5 tracking-[.18em]">● Strava connected</span>
         </Mono>
         <h1 className="font-tight font-extrabold text-[64px] leading-[0.98] tracking-[-0.04em] mt-2.5 text-balance">
           How should we<br />
@@ -122,11 +150,12 @@ export function OnboardingProfile() {
           <div>
             <div className="flex justify-between items-baseline mb-1.5">
               <Mono className="text-[10px] text-ink-soft tracking-[.14em] uppercase">Preferred name</Mono>
-              <Mono className="text-[10px] text-ink-soft tracking-[.06em]">from roster · Jordan Mehta</Mono>
+              {me && <Mono className="text-[10px] text-ink-soft tracking-[.06em]">from roster · {me.name}</Mono>}
             </div>
             <input
-              defaultValue="Jordan"
-              placeholder="Jordan"
+              value={nickname}
+              onChange={(e) => setNickname(e.target.value)}
+              placeholder={me?.name ?? ''}
               className="block w-full px-4 py-3.5 border border-rule bg-panel text-ink font-tight font-bold text-[22px] tracking-[-0.01em] outline-none box-border"
             />
             <Mono className="block mt-1 text-[10px] text-ink-soft">How others on the leaderboard will see you.</Mono>
@@ -135,12 +164,13 @@ export function OnboardingProfile() {
           <div>
             <div className="flex justify-between items-baseline mb-1.5">
               <Mono className="text-[10px] text-ink-soft tracking-[.14em] uppercase">Preferred contact email</Mono>
-              <Mono className="text-[10px] text-ink-soft tracking-[.06em]">from roster · jordan.mehta@umn.edu</Mono>
+              {me && <Mono className="text-[10px] text-ink-soft tracking-[.06em]">from roster · {me.roster_email}</Mono>}
             </div>
             <input
               type="email"
-              defaultValue="jordan.mehta@umn.edu"
-              placeholder="you@example.com"
+              value={preferredEmail}
+              onChange={(e) => setPreferredEmail(e.target.value)}
+              placeholder={me?.roster_email ?? ''}
               className="block w-full px-4 py-3.5 border border-rule bg-panel text-ink font-sans text-[15px] tracking-[-0.005em] outline-none box-border"
             />
             <Mono className="block mt-1 text-[10px] text-ink-soft">For weekly recap emails &amp; section-leader pings. Leave as your @umn.edu if you prefer.</Mono>
@@ -152,11 +182,12 @@ export function OnboardingProfile() {
           <button onClick={() => navigate('/onboarding/done')} className="px-6 py-3.5 bg-transparent text-ink border border-rule font-tight font-bold text-[13px] tracking-[.06em] uppercase cursor-pointer">Skip for now</button>
           <div className="flex-1" />
           <button
-            onClick={() => navigate('/onboarding/done')}
-            className="px-8 py-4 bg-ink text-panel border-none font-tight font-bold text-[14px] tracking-[.06em] uppercase cursor-pointer"
+            onClick={handleSave}
+            disabled={saving}
+            className="px-8 py-4 bg-ink text-panel border-none font-tight font-bold text-[14px] tracking-[.06em] uppercase cursor-pointer disabled:opacity-60"
             style={{ boxShadow: "0 5px 0 var(--brand)" }}
           >
-            Save &amp; continue →
+            {saving ? 'Saving…' : 'Save & continue →'}
           </button>
         </div>
       </div>
@@ -166,6 +197,20 @@ export function OnboardingProfile() {
 
 export function OnboardingDone() {
   const navigate = useNavigate();
+  const [me, setMe] = useState(null);
+  const [periods, setPeriods] = useState([]);
+
+  useEffect(() => {
+    Promise.all([getMe(), getPeriods()]).then(([meData, periodsData]) => {
+      setMe(meData);
+      setPeriods(periodsData);
+    });
+  }, []);
+
+  const livePeriod = periods.find((p) => p.state === 'live');
+  const totalPeriods = periods.length;
+  const livePeriodN = livePeriod ? livePeriod.name.replace('Period ', '') : '—';
+
   return (
     <div className="w-full min-h-screen bg-bg text-ink font-sans px-9 pt-8 pb-7 relative overflow-hidden flex flex-col items-center justify-center" data-page-root>
       <div className="absolute top-8 left-9 font-tight font-extrabold text-[22px] tracking-[-0.02em]">
@@ -179,15 +224,15 @@ export function OnboardingDone() {
           You're <span className="text-brand">in.</span>
         </h1>
         <p className="text-[18px] leading-relaxed text-ink-soft mt-5 max-w-[560px] mx-auto">
-          Welcome to Summer '26, Jordan. We matched you to the <strong className="text-ink">Trumpets</strong> section. We'll back-sync any activities you've already done this summer on your first dashboard load.
+          Welcome to Summer '26{me ? `, ${me.name}` : ''}. We matched you to the{' '}
+          <strong className="text-ink">{me?.section ?? '…'}</strong> section. We'll back-sync any activities you've already done this summer on your first dashboard load.
         </p>
 
         <div className="mt-7 inline-flex gap-0 border border-rule-soft">
           {[
-            { k: "SECTION",  v: "Trumpets",    colored: true },
-            { k: "MEMBERS",  v: "38",           colored: false },
-            { k: "WEEK",     v: "3 / 8 live",  colored: false },
-            { k: "FREEZES",  v: "Sun 11:59pm", colored: false },
+            { k: "SECTION",  v: me?.section ?? '…',                           colored: true },
+            { k: "WEEK",     v: totalPeriods ? `${livePeriodN} / ${totalPeriods} live` : '…', colored: false },
+            { k: "FREEZES",  v: "Sun 11:59pm",                                colored: false },
           ].map((s, i) => (
             <div key={s.k} className={`px-[22px] py-3.5 bg-panel ${i ? "border-l border-rule-soft" : ""}`}>
               <Mono className="text-[10px] text-ink-soft tracking-[.14em] block">{s.k}</Mono>

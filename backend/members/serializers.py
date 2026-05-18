@@ -34,6 +34,7 @@ class MemberMeSerializer(serializers.Serializer):
     strava_connected = serializers.BooleanField()
     nickname = serializers.CharField(allow_null=True)
     preferred_email = serializers.EmailField(allow_null=True)
+    roster_email = serializers.EmailField()
 
 
 class RosterMemberSerializer(serializers.ModelSerializer):
