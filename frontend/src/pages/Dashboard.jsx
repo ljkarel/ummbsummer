@@ -10,6 +10,85 @@ import { BASE, getMe, getPeriods, getScoreboard, getActivities } from '../lib/ap
 
 const CT = 'America/Chicago';
 
+function Podium({ rows, valueFor, animated }) {
+  const order = [1, 0, 2];
+  const heights = { 0: 80, 1: 65, 2: 50 };
+  const revealDelay = { 0: 450, 1: 200, 2: 0 };
+
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, alignItems: 'end', padding: '4px 0 0' }}>
+      {order.map((i) => {
+        const r = rows[i];
+        if (!r) return <div key={i} />;
+        const value = valueFor(r);
+        const isFirst = i === 0;
+        const delay = revealDelay[i];
+        const barColor = isFirst ? 'var(--brand)' : i === 1 ? 'var(--accent-2)' : 'var(--accent)';
+
+        return (
+          <div key={i} className="text-center">
+            {/* Name + rank — fade/rise in */}
+            <div style={{
+              opacity: animated ? 1 : 0,
+              transform: animated ? 'translateY(0)' : 'translateY(6px)',
+              transition: animated
+                ? `opacity 0.35s ease ${delay + 80}ms, transform 0.35s ease ${delay + 80}ms`
+                : 'none',
+            }}>
+              <Mono className="font-tight font-extrabold text-[9px] tracking-[.06em] text-ink-soft">
+                {i === 0 ? '1ST' : i === 1 ? '2ND' : '3RD'}
+              </Mono>
+              <div
+                className={`font-tight font-extrabold tracking-[-0.02em] text-ink mt-1 text-wrap-balance ${isFirst ? 'text-[15px]' : 'text-sm'}`}
+                style={{ minHeight: isFirst ? 36 : 28 }}
+              >
+                {r.name}
+              </div>
+            </div>
+
+            {/* Fixed-height bar container — layout never shifts, no border here */}
+            <div
+              style={{ position: 'relative', height: heights[i], overflow: 'hidden' }}
+              className={isFirst ? '' : 'opacity-85'}
+            >
+              {/* Bar rises from bottom */}
+              <div style={{
+                position: 'absolute', inset: 0,
+                background: barColor,
+                transform: animated ? 'scaleY(1)' : 'scaleY(0)',
+                transformOrigin: 'bottom',
+                transition: animated
+                  ? `transform 0.55s cubic-bezier(0.2, 0.7, 0.3, 1) ${delay}ms`
+                  : 'none',
+              }} />
+              {/* Points — fade in near end of bar rise */}
+              <div style={{
+                position: 'absolute', inset: 0,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                opacity: animated ? 1 : 0,
+                transition: animated ? `opacity 0.3s ease ${delay + 300}ms` : 'none',
+              }}
+                className="font-tight font-extrabold text-xl tracking-[-0.02em] text-panel"
+              >
+                {typeof value === 'number' ? value.toFixed(value < 100 ? 1 : 0) : value}
+              </div>
+              {/* Border overlay — fades in with bar so they move together */}
+              <div style={{
+                position: 'absolute', inset: 0,
+                border: '1px solid var(--rule)',
+                opacity: animated ? 1 : 0,
+                transition: animated ? `opacity 0.15s ease ${delay}ms` : 'none',
+                pointerEvents: 'none',
+              }} />
+            </div>
+
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function fmtDateRange(start, end) {
   if (!start || !end) return '';
   const opts = { month: 'short', day: 'numeric', timeZone: CT };
@@ -103,6 +182,7 @@ export default function Dashboard() {
 
   const lbListRef = useFlipAnimation(sectionsSorted);
 
+  const top3 = sectionsSorted.slice(0, 3);
   const mySection = sections.find((s) => s.is_me);
   const myRank = sectionsSorted.findIndex((s) => s.is_me) + 1;
   const weekMinutes = me?.week_minutes ?? 0;
@@ -351,6 +431,23 @@ export default function Dashboard() {
                 Viewing · WK {selectedPeriodIdx >= 0 ? String(selectedPeriodIdx + 1).padStart(2, '0') : '—'}
               </Mono>
             </div>
+          </div>
+
+          {/* Podium */}
+          <div className="bg-panel border border-rule-soft px-5 pt-4 pb-5">
+            <div className="flex justify-between items-baseline mb-1">
+              <h3 className="font-tight font-extrabold text-base m-0 tracking-[-0.01em]">Top three sections</h3>
+              <Mono className="text-[10px] text-ink-soft tracking-[.1em] uppercase">
+                {lbMode === 'week'
+                  ? `AVG PTS · WK ${selectedPeriodIdx >= 0 ? String(selectedPeriodIdx + 1).padStart(2, '0') : '—'}`
+                  : `Σ AVGS · THRU WK ${selectedPeriodIdx >= 0 ? String(selectedPeriodIdx + 1).padStart(2, '0') : '—'}`}
+              </Mono>
+            </div>
+            <Podium
+              rows={top3}
+              valueFor={valueFor}
+              animated={lbAnimated}
+            />
           </div>
 
           {/* Scoring curve */}

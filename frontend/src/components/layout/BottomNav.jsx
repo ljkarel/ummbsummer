@@ -2,11 +2,10 @@ import { Link, useLocation } from 'react-router-dom';
 import { Mono } from '../ui.jsx';
 
 const NAV_ITEMS = [
-  { label: 'Home',     to: '/'            },
-  { label: 'Activity', to: '/activity'    },
-  { label: 'Board',    to: '/leaderboard' },
-  { label: 'Art',      to: '/art'         },
-  { label: 'Roster',   to: '/roster'      },
+  { label: 'Home',     to: '/'         },
+  { label: 'Activity', to: '/activity' },
+  { label: 'Art',      to: '/art'      },
+  { label: 'Roster',   to: '/roster'   },
 ];
 
 export function BottomNav() {

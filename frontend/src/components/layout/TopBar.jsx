@@ -1,15 +1,14 @@
 import { Link, useLocation } from 'react-router-dom';
-import { UserIcon } from '@heroicons/react/24/outline';
+import { UserIcon } from '@heroicons/react/24/solid';
 import { Mono } from '../ui.jsx';
 import { BASE } from '../../lib/api.js';
 const TODAY = new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 
 const NAV_ITEMS = [
-  { label: 'Dashboard',   to: '/'            },
-  { label: 'Activity',    to: '/activity'    },
-  { label: 'Leaderboard', to: '/leaderboard' },
-  { label: 'Strava Art',  to: '/art'         },
-  { label: 'Roster',      to: '/roster'      },
+  { label: 'Dashboard',   to: '/'         },
+  { label: 'Activity',    to: '/activity' },
+  { label: 'Strava Art',  to: '/art'      },
+  { label: 'Roster',      to: '/roster'   },
 ];
 
 export function TopBar({ settingsOpen, onAvatarClick, stravaConnected = true }) {

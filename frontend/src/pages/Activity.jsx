@@ -121,6 +121,7 @@ export default function Activity() {
   const [me, setMe] = useState(null);
   const [activities, setActivities] = useState([]);
   const [totalCount, setTotalCount] = useState(0);
+  const [originalTotalCount, setOriginalTotalCount] = useState(0);
   const [nextUrl, setNextUrl] = useState(null);
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -148,6 +149,7 @@ export default function Activity() {
       setMe(meData);
       setActivities(actData.results ?? []);
       setTotalCount(actData.count ?? 0);
+      setOriginalTotalCount(actData.count ?? 0);
       setNextUrl(actData.next ?? null);
       setSports([{ value: 'All', label: 'All' }, ...(sportsData.sports ?? [])]);
     });
@@ -189,7 +191,7 @@ export default function Activity() {
       <div className="py-[26px] pb-[22px]">
         <Mono className="text-[11px] text-ink-soft tracking-[.18em] uppercase">Your activity — summer to date</Mono>
         <h1 className="font-tight font-extrabold text-[56px] leading-none mt-2 mb-0 [text-wrap:balance]" style={{ lineHeight: 1.02, letterSpacing: '-0.035em' }}>
-          <Mono className="font-tight font-extrabold text-brand" style={{ fontSize: 'inherit', letterSpacing: '-0.035em' }}>{totalCount}</Mono> activities · <Mono className="font-tight font-extrabold" style={{ fontSize: 'inherit', letterSpacing: '-0.035em' }}>{(me?.total_minutes ?? 0).toLocaleString()}</Mono> minutes logged.
+          <Mono className="font-tight font-extrabold text-brand" style={{ fontSize: 'inherit', letterSpacing: '-0.035em' }}>{originalTotalCount}</Mono> activities · <Mono className="font-tight font-extrabold" style={{ fontSize: 'inherit', letterSpacing: '-0.035em' }}>{(me?.total_minutes ?? 0).toLocaleString()}</Mono> minutes logged.
         </h1>
       </div>
 
@@ -197,7 +199,7 @@ export default function Activity() {
 
       <div className="grid grid-cols-2 lg:grid-cols-4 border-b border-rule-soft">
         {[
-          { k: 'ACTIVITIES',  v: totalCount,             sub: 'this summer',                                  accentClass: 'text-brand' },
+          { k: 'ACTIVITIES',  v: originalTotalCount,             sub: 'this summer',                                  accentClass: 'text-brand' },
           { k: 'MINUTES',     v: me?.total_minutes ?? 0, sub: 'logged via Strava',                            accentClass: 'text-accent-2' },
           { k: 'POINTS',      v: +(me?.total_points?.toFixed(1) ?? 0), sub: `this summer`,                    accentClass: 'text-ink' },
           { k: 'DAY STREAK',  v: me?.streak ?? 0,        sub: 'current streak',                               accentClass: 'text-accent' },
@@ -219,7 +221,7 @@ export default function Activity() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mt-8 pb-[10px] border-b" style={{ borderBottomWidth: '1.5px', borderBottomColor: 'var(--ink)' }}>
         <div className="flex items-center gap-3">
           <h2 className="font-tight font-extrabold text-[22px] m-0" style={{ letterSpacing: '-0.02em' }}>All activities</h2>
-          <Mono className="text-[11px] text-ink-soft tracking-[.1em] uppercase">{filtered.length} of {totalCount}</Mono>
+          <Mono className="text-[11px] text-ink-soft tracking-[.1em] uppercase">{filtered.length} of {originalTotalCount}</Mono>
         </div>
         <div className="flex items-center gap-[18px]">
           <div className="flex items-center gap-[6px]">
