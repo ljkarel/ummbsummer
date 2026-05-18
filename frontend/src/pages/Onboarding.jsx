@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Mono, Rule, StaffLines } from '../components/ui.jsx';
 import { BASE, getMe, patchMe, getPeriods } from '../lib/api.js';
 
@@ -50,6 +50,10 @@ function OnboardingShell({ children, step = 1, total = 2 }) {
 }
 
 export function OnboardingStrava() {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const scopeError = searchParams.get('strava_scope_error') === 'true';
+
   return (
     <OnboardingShell step={1} total={2}>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center max-w-[1100px] w-full">
@@ -61,6 +65,15 @@ export function OnboardingStrava() {
           <p className="text-base leading-[1.55] text-ink-soft mt-[18px] max-w-[480px]">
             We use Strava to count your minutes. New activities sync automatically via webhook — no manual logging.
           </p>
+
+          {scopeError && (
+            <div className="mt-5 px-4 py-3.5 border border-brand max-w-[480px]">
+              <Mono className="text-[11px] text-brand tracking-[.12em] uppercase block mb-1">Permission required</Mono>
+              <p className="text-sm text-ink-soft m-0 leading-relaxed">
+                Activity access is required. Please reconnect and grant at least the <strong className="text-ink">activity:read</strong> permission when prompted by Strava.
+              </p>
+            </div>
+          )}
 
           <button
             onClick={() => { window.location.href = `${BASE}/api/strava/init/`; }}
@@ -74,7 +87,16 @@ export function OnboardingStrava() {
             <span className="text-[18px] ml-0.5">→</span>
           </button>
           <Mono className="block mt-3.5 text-[11px] text-ink-soft tracking-[.06em] max-w-[480px] leading-relaxed">
-            You'll be redirected to strava.com to authorize. You can disconnect any time from Settings.
+            You'll be redirected to strava.com to authorize. You can disconnect any time from Settings.{' '}
+            <span
+              role="button"
+              tabIndex={0}
+              onClick={() => navigate('/')}
+              onKeyDown={(e) => e.key === 'Enter' && navigate('/')}
+              className="text-ink-soft underline underline-offset-2 decoration-rule-soft cursor-pointer opacity-50 hover:opacity-100 transition-opacity"
+            >
+              Not now.
+            </span>
           </Mono>
         </div>
 

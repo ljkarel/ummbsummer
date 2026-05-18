@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Mono, Rule, Tag, CountUp, ScoringCurve, RouteMap, TrendCell, TrendHeader } from '../components/ui.jsx';
 import { useFlipAnimation } from '../lib/useFlipAnimation.js';
 import { TopBar } from '../components/layout/TopBar.jsx';
 import { BottomNav } from '../components/layout/BottomNav.jsx';
 import { PageFooter } from '../components/layout/PageFooter.jsx';
 import { SettingsDrawer } from '../components/SettingsDrawer.jsx';
-import { getMe, getPeriods, getScoreboard, getActivities } from '../lib/api.js';
+import { BASE, getMe, getPeriods, getScoreboard, getActivities } from '../lib/api.js';
 
 const CT = 'America/Chicago';
 
@@ -55,6 +55,14 @@ export default function Dashboard() {
   const [selectedPeriodId, setSelectedPeriodId] = useState(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [lbAnimated, setLbAnimated] = useState(false);
+  const [stravaModalDismissed, setStravaModalDismissed] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+  // Capture the param value once at mount into stable state, then clear the URL.
+  const [stravaWasCancelled] = useState(() => searchParams.get('strava_cancelled') === 'true');
+
+  useEffect(() => {
+    if (stravaWasCancelled) setSearchParams({}, { replace: true });
+  }, []);
 
   useEffect(() => {
     Promise.all([getMe(), getPeriods(), getScoreboard(), getActivities()]).then(
@@ -99,11 +107,50 @@ export default function Dashboard() {
   const myRank = sectionsSorted.findIndex((s) => s.is_me) + 1;
   const weekMinutes = me?.week_minutes ?? 0;
 
+  const stravaConnected = me?.strava_connected ?? true;
+  const showStravaModal = !stravaModalDismissed && (stravaWasCancelled || (me !== null && !stravaConnected));
+
   return (
     <div className="w-full min-h-screen bg-bg text-ink font-sans px-9 pt-7 pb-20 relative" data-page-root>
-      <TopBar settingsOpen={settingsOpen} onAvatarClick={() => setSettingsOpen((o) => !o)} />
+      <TopBar settingsOpen={settingsOpen} onAvatarClick={() => setSettingsOpen((o) => !o)} stravaConnected={stravaConnected} />
       <Rule weight={1.5} />
       <SettingsDrawer open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+
+      {/* Strava not-connected modal */}
+      {showStravaModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-bg/80" style={{ backdropFilter: 'blur(2px)' }}>
+          <div className="bg-panel border border-rule max-w-[440px] w-full mx-6 px-8 py-8">
+            <Mono className="text-[11px] text-ink-soft tracking-[.18em] uppercase block mb-3">Strava not connected</Mono>
+            <h2 className="font-tight font-extrabold text-[28px] tracking-[-0.025em] m-0 mb-3">Connect Strava to contribute.</h2>
+            <p className="text-sm text-ink-soft leading-relaxed m-0 mb-7">
+              Connecting Strava is required to log activity and earn points for your section. Activities sync automatically once connected.
+            </p>
+            <div className="flex gap-3 flex-wrap">
+              <button
+                onClick={() => { window.location.href = `${BASE}/api/strava/init/`; }}
+                className="px-6 py-3.5 bg-brand text-panel border-none font-tight font-bold text-[13px] tracking-[.06em] uppercase cursor-pointer"
+                style={{ boxShadow: '0 4px 0 var(--ink)' }}
+              >
+                Connect Strava →
+              </button>
+              <button
+                onClick={() => setStravaModalDismissed(true)}
+                className="px-6 py-3.5 bg-transparent text-ink-soft border border-rule-soft font-tight font-bold text-[13px] tracking-[.06em] uppercase cursor-pointer"
+              >
+                Dismiss
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Mobile Strava reminder banner */}
+      {!showStravaModal && me !== null && !stravaConnected && (
+        <div className="sm:hidden flex items-center justify-between gap-3 mt-3 mb-1 px-4 py-3 border border-rule-soft bg-panel">
+          <Mono className="text-[11px] text-ink-soft tracking-[.06em]">Strava not connected — points won't count until you do.</Mono>
+          <button onClick={() => { window.location.href = `${BASE}/api/strava/init/`; }} className="text-[11px] font-mono font-bold text-brand bg-transparent border-none cursor-pointer whitespace-nowrap p-0">Connect →</button>
+        </div>
+      )}
 
       {/* Hero grid */}
       <div className="grid grid-cols-1 lg:grid-cols-[1.5fr_1fr] gap-8 items-end py-[26px]">
@@ -345,9 +392,15 @@ export default function Dashboard() {
           <h2 className="font-tight font-extrabold text-[22px] tracking-[-0.02em] m-0">Your activity</h2>
           <div className="flex items-center gap-3">
             <Mono className="text-[11px] text-ink-soft tracking-[.1em] uppercase">Synced via Strava</Mono>
-            <span className="inline-flex items-center gap-1.5 text-[11px] text-good font-mono">
-              <span className="w-1.5 h-1.5 rounded-full bg-good" /> CONNECTED
-            </span>
+            {stravaConnected ? (
+              <span className="inline-flex items-center gap-1.5 text-[11px] text-good font-mono">
+                <span className="w-1.5 h-1.5 rounded-full bg-good" /> CONNECTED
+              </span>
+            ) : (
+              <button onClick={() => { window.location.href = `${BASE}/api/strava/init/`; }} className="inline-flex items-center gap-1.5 text-[11px] text-brand font-mono bg-transparent border-none cursor-pointer p-0">
+                <span className="w-1.5 h-1.5 rounded-full bg-brand" /> NOT CONNECTED
+              </button>
+            )}
           </div>
         </div>
         <Rule weight={1.5} />

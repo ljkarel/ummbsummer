@@ -86,11 +86,14 @@ class StravaCallbackView(APIView):
         scope = request.GET.get('scope')
         error = request.GET.get('error')
 
-        if error or not code or not scope:
-            return redirect('strava_login')
+        if error:
+            return redirect(f'{settings.FRONTEND_URL}/?strava_cancelled=true')
+
+        if not code or not scope:
+            return redirect(f'{settings.FRONTEND_URL}/onboarding')
 
         if not valid_scope(scope):
-            return redirect('strava_login')
+            return redirect(f'{settings.FRONTEND_URL}/onboarding?strava_scope_error=true')
 
         token_data = token_exchange(code)
 

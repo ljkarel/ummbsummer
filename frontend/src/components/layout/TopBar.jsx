@@ -1,5 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { Mono } from '../ui.jsx';
+import { BASE } from '../../lib/api.js';
 const TODAY = new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 
 const NAV_ITEMS = [
@@ -10,7 +11,7 @@ const NAV_ITEMS = [
   { label: 'Roster',      to: '/roster'      },
 ];
 
-export function TopBar({ settingsOpen, onAvatarClick }) {
+export function TopBar({ settingsOpen, onAvatarClick, stravaConnected = true }) {
   const { pathname } = useLocation();
   const isActive = (to) => to === '/' ? pathname === '/' : pathname.startsWith(to);
 
@@ -41,6 +42,12 @@ export function TopBar({ settingsOpen, onAvatarClick }) {
               >{item.label}</Link>
             );
           })}
+          {!stravaConnected && (
+            <button
+              onClick={() => { window.location.href = `${BASE}/api/strava/init/`; }}
+              className="pb-0.5 border-b-2 border-brand font-semibold text-brand text-[13px] bg-transparent border-l-0 border-r-0 border-t-0 cursor-pointer p-0"
+            >Connect Strava</button>
+          )}
         </nav>
 
         <button
