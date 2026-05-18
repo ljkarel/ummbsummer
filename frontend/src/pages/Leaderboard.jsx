@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Mono, Rule, Tag } from '../components/ui.jsx';
+import { Mono, Rule, Tag, TrendCell, TrendHeader } from '../components/ui.jsx';
 import { TopBar } from '../components/layout/TopBar.jsx';
 import { BottomNav } from '../components/layout/BottomNav.jsx';
 import { PageFooter } from '../components/layout/PageFooter.jsx';
 import { SettingsDrawer } from '../components/SettingsDrawer.jsx';
 import { getPeriods, getScoreboard } from '../lib/api.js';
+import { useFlipAnimation } from '../lib/useFlipAnimation.js';
 
 function Podium({ rows, valueFor, label }) {
   const order = [1, 0, 2];
@@ -42,9 +43,10 @@ function Podium({ rows, valueFor, label }) {
   );
 }
 
-function LeaderRow({ rank, isTop, isMe, primary, secondary, value, trend }) {
+function LeaderRow({ rank, isTop, isMe, primary, secondary, value, trend, sectionName }) {
   return (
     <div
+      data-section={sectionName}
       style={{
         display: 'grid',
         gridTemplateColumns: '32px 1.6fr 2fr 80px 40px',
@@ -66,12 +68,7 @@ function LeaderRow({ rank, isTop, isMe, primary, secondary, value, trend }) {
       <Mono className="text-right text-[15px] font-bold text-ink">
         {typeof value === 'number' ? value.toFixed(value < 100 ? 1 : 0) : value}
       </Mono>
-      <Mono
-        className="text-right text-[11px]"
-        style={{ color: trend > 0 ? 'var(--good)' : trend < 0 ? 'var(--brand)' : 'var(--ink-soft)' }}
-      >
-        {trend > 0 ? `▲${Math.abs(trend)}` : trend < 0 ? `▼${Math.abs(trend)}` : '—'}
-      </Mono>
+      <TrendCell trend={trend} />
     </div>
   );
 }
@@ -109,6 +106,8 @@ export default function Leaderboard() {
     () => [...sections].sort((a, b) => valueFor(b) - valueFor(a)),
     [sections, mode, selectedPeriodIdx]
   );
+
+  const listRef = useFlipAnimation(sectionsSorted);
 
   const top3 = sectionsSorted.slice(0, 3);
   const mySection = sectionsSorted.find((s) => s.is_me);
@@ -208,20 +207,23 @@ export default function Leaderboard() {
           <Mono className="text-[9px] text-ink-soft tracking-[.14em]">SECTION</Mono>
           <Mono className="hidden sm:block text-[9px] text-ink-soft tracking-[.14em]">SIZE</Mono>
           <Mono className="text-[9px] text-ink-soft tracking-[.14em] text-right">{mode === 'week' ? 'PTS' : 'TOTAL'}</Mono>
-          <Mono className="text-[9px] text-ink-soft tracking-[.14em] text-right">Δ</Mono>
+          <TrendHeader />
         </div>
-        {sectionsSorted.map((s, i) => (
-          <LeaderRow
-            key={s.name}
-            rank={i + 1}
-            isTop={i === 0}
-            isMe={!!s.is_me}
-            primary={s.name}
-            secondary={`${s.members} members`}
-            value={valueFor(s)}
-            trend={s.trend ?? 0}
-          />
-        ))}
+        <div ref={listRef}>
+          {sectionsSorted.map((s, i) => (
+            <LeaderRow
+              key={s.name}
+              sectionName={s.name}
+              rank={i + 1}
+              isTop={i === 0}
+              isMe={!!s.is_me}
+              primary={s.name}
+              secondary={`${s.members} members`}
+              value={valueFor(s)}
+              trend={s.trend ?? 0}
+            />
+          ))}
+        </div>
         <Mono className="block mt-3.5 text-[11px] text-ink-soft tracking-[.1em] uppercase">
           Individual minutes &amp; points are private to each member.
         </Mono>

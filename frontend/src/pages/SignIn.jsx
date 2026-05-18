@@ -66,12 +66,12 @@ export default function SignIn() {
             Summer workout program · {dateRange}
           </Mono>
           <h1 className="font-tight font-extrabold text-[76px] leading-[0.98] tracking-[-0.04em] mt-3 text-balance">
-            Welcome back,<br />
-            <span className="text-brand">band.</span>
+            We move,<br />
+            <span className="text-brand">together.</span>
           </h1>
 
           <p className="text-base leading-relaxed text-ink-soft mt-[18px] max-w-[520px]">
-            Track your summer workouts, compete by section, and make art with your routes. Sign in to keep your streak going.
+            Track your summer workouts, compete by section, and make art with your routes. Sign in to get started.
           </p>
 
           <button

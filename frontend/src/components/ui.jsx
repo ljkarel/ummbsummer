@@ -97,6 +97,26 @@ export function ScoringCurve({ current = 0 }) {
   );
 }
 
+export function TrendCell({ trend }) {
+  return (
+    <Mono
+      className="text-right text-[11px]"
+      style={{ color: trend > 0 ? 'var(--good)' : trend < 0 ? 'var(--brand)' : 'var(--ink-soft)' }}
+    >
+      {trend > 0 ? `▲ ${Math.abs(trend)}` : trend < 0 ? `▼ ${Math.abs(trend)}` : '—'}
+    </Mono>
+  );
+}
+
+export function TrendHeader() {
+  return (
+    <div className="flex flex-col items-end" style={{ lineHeight: 1, gap: 1 }}>
+      <Mono className="text-[7px] text-ink-soft">▲</Mono>
+      <Mono className="text-[7px] text-ink-soft">▼</Mono>
+    </div>
+  );
+}
+
 export function RouteMap({ svgPath }) {
   return (
     <svg viewBox="0 0 100 90" width="100%" height="100%" preserveAspectRatio="none" className="block">

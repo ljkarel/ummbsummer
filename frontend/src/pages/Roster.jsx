@@ -8,7 +8,7 @@ import { getRoster } from '../lib/api.js';
 
 const SECTION_SLUGS = [
   { name: 'All', slug: '' },
-  { name: 'Baritones', slug: 'baritones' },
+  { name: 'Baritones', slug: 'baritone' },
   { name: 'Clarinets', slug: 'clarinets' },
   { name: 'Color Guard', slug: 'color-guard' },
   { name: 'Drumline', slug: 'drumline' },

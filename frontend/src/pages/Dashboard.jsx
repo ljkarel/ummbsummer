@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Mono, Rule, Tag, CountUp, ScoringCurve, RouteMap } from '../components/ui.jsx';
+import { Mono, Rule, Tag, CountUp, ScoringCurve, RouteMap, TrendCell, TrendHeader } from '../components/ui.jsx';
+import { useFlipAnimation } from '../lib/useFlipAnimation.js';
 import { TopBar } from '../components/layout/TopBar.jsx';
 import { BottomNav } from '../components/layout/BottomNav.jsx';
 import { PageFooter } from '../components/layout/PageFooter.jsx';
@@ -27,13 +28,22 @@ function fmtActivityDate(isoStr) {
   return new Date(isoStr).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: CT });
 }
 
-function daysUntil(dtStr) {
-  if (!dtStr) return 0;
-  return Math.max(0, Math.ceil((new Date(dtStr) - Date.now()) / 86_400_000));
-}
 
 function periodN(period, idx) {
   return idx + 1;
+}
+
+function Countdown({ target }) {
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setTick((t) => t + 1), 1000);
+    return () => clearInterval(id);
+  }, [target]);
+  const ms = Math.max(0, new Date(target) - Date.now());
+  const h = Math.floor(ms / 3_600_000);
+  const m = Math.floor((ms % 3_600_000) / 60_000);
+  const s = Math.floor((ms % 60_000) / 1000);
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
 export default function Dashboard() {
@@ -82,6 +92,8 @@ export default function Dashboard() {
     () => [...sections].sort((a, b) => valueFor(b) - valueFor(a)),
     [sections, lbMode, selectedPeriodIdx]
   );
+
+  const lbListRef = useFlipAnimation(sectionsSorted);
 
   const mySection = sections.find((s) => s.is_me);
   const myRank = sectionsSorted.findIndex((s) => s.is_me) + 1;
@@ -139,16 +151,24 @@ export default function Dashboard() {
           { k: 'MINUTES THIS WEEK', v: weekMinutes, sub: `${activities.length} recent activities`, accent: 'text-brand' },
           { k: 'POINTS THIS WEEK', v: me?.week_points ?? 0, sub: `${me?.total_points?.toFixed(1) ?? 0} pts this season`, accent: 'text-accent-2' },
           { k: 'SECTION RANK', v: myRank > 0 ? `#${myRank}` : '—', sub: mySection ? `${mySection.name} · ${mySection.members} members` : '—', accent: 'text-ink' },
-          { k: 'DAYS LEFT IN WEEK', v: livePeriod ? daysUntil(livePeriod.freeze_datetime) : 0, sub: livePeriod ? `until ${fmtFreeze(livePeriod.freeze_datetime)}` : '—', accent: 'text-accent' },
-        ].map((s, i) =>
-          <div key={s.k} className={`px-[22px] pt-[22px] pb-[26px]${i ? ' border-l border-rule-soft' : ''}`}>
-            <Mono className="text-[10px] tracking-[.16em] text-ink-soft">{s.k}</Mono>
-            <div className={`font-tight font-extrabold text-[52px] leading-none tracking-[-0.04em] mt-2 ${s.accent}`}>
-              {typeof s.v === 'number' ? <CountUp to={s.v} /> : s.v}
+          { k: 'DAYS LEFT IN WEEK', freeze: livePeriod?.freeze_datetime ?? null, sub: livePeriod ? `until ${fmtFreeze(livePeriod.freeze_datetime)}` : '—', accent: 'text-accent' },
+        ].map((s, i) => {
+          const hoursLeft = s.freeze ? Math.max(0, (new Date(s.freeze) - Date.now()) / 3_600_000) : null;
+          const showCountdown = hoursLeft != null && hoursLeft < 24;
+          return (
+            <div key={s.k} className={`px-[22px] pt-[22px] pb-[26px]${i ? ' border-l border-rule-soft' : ''}`}>
+              <Mono className="text-[10px] tracking-[.16em] text-ink-soft">{showCountdown ? 'TIME LEFT IN WEEK' : s.k}</Mono>
+              <div className={`font-tight font-extrabold text-[52px] leading-none tracking-[-0.04em] mt-2 ${s.accent}`}>
+                {showCountdown
+                  ? <Countdown target={s.freeze} />
+                  : s.freeze
+                    ? <CountUp to={Math.ceil(hoursLeft / 24)} />
+                    : typeof s.v === 'number' ? <CountUp to={s.v} /> : s.v}
+              </div>
+              <div className="text-xs text-ink-soft mt-1.5">{s.sub}</div>
             </div>
-            <div className="text-xs text-ink-soft mt-1.5">{s.sub}</div>
-          </div>
-        )}
+          );
+        })}
       </div>
 
       {/* Main 2-col grid */}
@@ -157,7 +177,7 @@ export default function Dashboard() {
           <div className="flex items-baseline justify-between mb-2.5">
             <h2 className="font-tight font-extrabold text-[22px] tracking-[-0.02em] m-0">Section leaderboard</h2>
             <div className="flex items-center gap-1.5 p-[3px] border border-rule-soft">
-              {[{ v: 'week', label: 'This Week' }, { v: 'season', label: 'Season Total' }].map((o) =>
+              {[{ v: 'week', label: 'Weekly' }, { v: 'season', label: 'Season Total' }].map((o) =>
                 <button key={o.v} onClick={() => setLbMode(o.v)}
                   className={`font-mono text-[10px] tracking-[.12em] uppercase px-2.5 py-[5px] border-none cursor-pointer${lbMode === o.v ? ' bg-ink text-panel font-bold' : ' bg-transparent text-ink-soft font-medium'}`}>
                   {o.label}
@@ -175,9 +195,9 @@ export default function Dashboard() {
                 : `Σ WEEKLY AVGS · THRU WK ${selectedPeriodIdx >= 0 ? String(selectedPeriodIdx + 1).padStart(2, '0') : '—'}`}
             </Mono>
             <Mono className="text-[9px] text-ink-soft tracking-[.14em] text-right">{lbMode === 'week' ? 'PTS' : 'TOTAL'}</Mono>
-            <Mono className="text-[9px] text-ink-soft tracking-[.14em] text-right">Δ</Mono>
+            <TrendHeader />
           </div>
-          <div>
+          <div ref={lbListRef}>
             {sectionsSorted.map((s, i) => {
               const value = valueFor(s);
               const max = valueFor(sectionsSorted[0]) || 1;
@@ -185,7 +205,7 @@ export default function Dashboard() {
               const isTop = i === 0;
               const trend = s.trend ?? 0;
               return (
-                <div key={s.name}
+                <div key={s.name} data-section={s.name}
                   className={`border-b border-rule-soft items-center${s.is_me ? ' bg-black/[.025]' : ' bg-transparent'}`}
                   style={{ display: 'grid', gridTemplateColumns: '28px 1.4fr 2.5fr 70px 28px', alignItems: 'center', gap: 12, padding: '12px 0' }}>
                   <Mono className={`text-[13px]${isTop ? ' text-brand font-bold' : ' text-ink-soft font-medium'}`}>{String(i + 1).padStart(2, '0')}</Mono>
@@ -206,9 +226,7 @@ export default function Dashboard() {
                   <Mono className="text-right text-[15px] font-bold text-ink">
                     <CountUp key={`${selectedPeriodId}-${lbMode}`} to={value} dur={700} format={(v) => v.toFixed(1)} />
                   </Mono>
-                  <Mono className={`text-right text-[11px]${trend > 0 ? ' text-good' : trend < 0 ? ' text-brand' : ' text-ink-soft'}`}>
-                    {trend > 0 ? `▲${Math.abs(trend)}` : trend < 0 ? `▼${Math.abs(trend)}` : '—'}
-                  </Mono>
+                  <TrendCell trend={trend} />
                 </div>
               );
             })}

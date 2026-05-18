@@ -23,28 +23,34 @@ import polyline as polyline_lib
 # ---------------------------------------------------------------------------
 
 SECTIONS = [
-    ("Trumpets",   38),
-    ("Mellophones", 22),
-    ("Trombones",  28),
-    ("Baritones",  16),
-    ("Tubas",      12),
-    ("Drumline",   24),
-    ("Color Guard", 30),
-    ("Pit",        10),
-    ("Clarinets",  32),
-    ("Flutes",     26),
+    ("Flute",           21),
+    ("Clarinet",        31),
+    ("Tenor Saxophone", 18),
+    ("Drumline",        30),
+    ("Trumpet",         64),
+    ("DMT",              4),
+    ("Trombone",        41),
+    ("Color Guard",     26),
+    ("Mellophone",      23),
+    ("Baritone",        22),
+    ("Sousaphone",      18),
+    ("Alto Saxophone",  33),
 ]
 
 PERIOD_DATES = [
     # (name, start_date, end_date, freeze_datetime_utc)
-    ("Period 1", date(2026, 4, 27), date(2026, 5,  3), datetime(2026,  5,  4, 4, 59, tzinfo=timezone.utc)),
-    ("Period 2", date(2026, 5,  4), date(2026, 5, 10), datetime(2026,  5, 11, 4, 59, tzinfo=timezone.utc)),
-    ("Period 3", date(2026, 5, 11), date(2026, 5, 17), datetime(2026,  5, 18, 4, 59, tzinfo=timezone.utc)),
-    ("Period 4", date(2026, 5, 18), date(2026, 5, 24), datetime(2026,  5, 25, 4, 59, tzinfo=timezone.utc)),
-    ("Period 5", date(2026, 5, 25), date(2026, 5, 31), datetime(2026,  6,  1, 4, 59, tzinfo=timezone.utc)),
-    ("Period 6", date(2026, 6,  1), date(2026, 6,  7), datetime(2026,  6,  8, 4, 59, tzinfo=timezone.utc)),
-    ("Period 7", date(2026, 6,  8), date(2026, 6, 14), datetime(2026,  6, 15, 4, 59, tzinfo=timezone.utc)),
-    ("Period 8", date(2026, 6, 15), date(2026, 6, 21), datetime(2026,  6, 22, 4, 59, tzinfo=timezone.utc)),
+    ("Period 1",  date(2026, 4, 27), date(2026, 5,  3), datetime(2026,  5,  4, 4, 59, tzinfo=timezone.utc)),
+    ("Period 2",  date(2026, 5,  4), date(2026, 5, 10), datetime(2026,  5, 11, 4, 59, tzinfo=timezone.utc)),
+    ("Period 3",  date(2026, 5, 11), date(2026, 5, 17), datetime(2026,  5, 18, 4, 59, tzinfo=timezone.utc)),
+    ("Period 4",  date(2026, 5, 18), date(2026, 5, 24), datetime(2026,  5, 25, 4, 59, tzinfo=timezone.utc)),
+    ("Period 5",  date(2026, 5, 25), date(2026, 5, 31), datetime(2026,  6,  1, 4, 59, tzinfo=timezone.utc)),
+    ("Period 6",  date(2026, 6,  1), date(2026, 6,  7), datetime(2026,  6,  8, 4, 59, tzinfo=timezone.utc)),
+    ("Period 7",  date(2026, 6,  8), date(2026, 6, 14), datetime(2026,  6, 15, 4, 59, tzinfo=timezone.utc)),
+    ("Period 8",  date(2026, 6, 15), date(2026, 6, 21), datetime(2026,  6, 22, 4, 59, tzinfo=timezone.utc)),
+    ("Period 9",  date(2026, 6, 22), date(2026, 6, 28), datetime(2026,  6, 29, 4, 59, tzinfo=timezone.utc)),
+    ("Period 10", date(2026, 6, 29), date(2026, 7,  5), datetime(2026,  7,  6, 4, 59, tzinfo=timezone.utc)),
+    ("Period 11", date(2026, 7,  6), date(2026, 7, 12), datetime(2026,  7, 13, 4, 59, tzinfo=timezone.utc)),
+    ("Period 12", date(2026, 7, 13), date(2026, 7, 19), datetime(2026,  7, 20, 4, 59, tzinfo=timezone.utc)),
 ]
 
 ART_THEMES = {
@@ -174,7 +180,7 @@ class Command(BaseCommand):
         self.stdout.write("Seeding competition and periods...")
         competition, _ = Competition.objects.get_or_create(
             name="Summer '26",
-            defaults={"start_date": date(2026, 4, 27), "end_date": date(2026, 6, 21)},
+            defaults={"start_date": date(2026, 4, 27), "end_date": date(2026, 7, 19)},
         )
 
         periods = {}
@@ -226,14 +232,14 @@ class Command(BaseCommand):
             admin_user.is_staff = True
             admin_user.save()
 
-        trumpets = sections_map.get("Trumpets")
+        baritone = sections_map.get("Baritone")
         dev_member, created = Member.objects.get_or_create(
-            email="dev@umn.edu",
+            email="karel084@umn.edu",
             defaults={
-                "first_name": "Dev",
-                "last_name": "User",
-                "section": trumpets,
-                "year": 4,
+                "first_name": "Lukas",
+                "last_name": "Karel",
+                "section": baritone,
+                "year": 5,
                 "is_leader": False,
             },
         )
@@ -241,15 +247,15 @@ class Command(BaseCommand):
             dev_member.user = admin_user
             dev_member.save()
 
-        if not hasattr(dev_member, "strava_auth"):
-            StravaAuth.objects.create(
-                strava_id=9999999999,
-                member=dev_member,
-                access_token="fake_dev_token",
-                refresh_token="fake_dev_refresh",
-                token_expires=datetime(2030, 1, 1, tzinfo=timezone.utc),
-                scope="activity:read_all",
-            )
+        # if not hasattr(dev_member, "strava_auth"):
+        #     StravaAuth.objects.create(
+        #         strava_id=9999999999,
+        #         member=dev_member,
+        #         access_token="fake_dev_token",
+        #         refresh_token="fake_dev_refresh",
+        #         token_expires=datetime(2030, 1, 1, tzinfo=timezone.utc),
+        #         scope="activity:read_all",
+        #     )
         self.stdout.write("  Dev user (dev@umn.edu → admin) ready.")
 
         self.stdout.write("Assigning registration statuses...")
