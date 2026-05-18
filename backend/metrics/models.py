@@ -1,8 +1,10 @@
+import datetime
 import math
 
 from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator
 from django.db import models
+from django.utils import timezone
 
 from members.models import Section
 
@@ -31,9 +33,26 @@ class CompetitionPeriod(models.Model):
         on_delete=models.CASCADE,
         related_name='periods',
     )
-    name = models.CharField(max_length=50, help_text="e.g., 'Week 1'")
+    name = models.CharField(max_length=50, help_text="e.g., 'Period 1'")
     start_date = models.DateField()
     end_date = models.DateField()
+    freeze_datetime = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When this period's scores lock. Defaults to end of end_date if blank."
+    )
+
+    @property
+    def state(self):
+        now = timezone.now()
+        freeze = self.freeze_datetime or datetime.datetime.combine(
+            self.end_date, datetime.time(23, 59, 59), tzinfo=datetime.timezone.utc
+        )
+        if now >= freeze:
+            return 'done'
+        if now.date() >= self.start_date:
+            return 'live'
+        return 'future'
 
     class Meta:
         db_table = 'competition_period'

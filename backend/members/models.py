@@ -90,6 +90,11 @@ class Member(models.Model):
         help_text="The member's university email address, as it appears on the roster."
     )
 
+    is_leader = models.BooleanField(
+        default=False,
+        help_text="Whether the member is a section leader."
+    )
+
     date_added = models.DateField(
         auto_now_add=True,
         help_text="The date that the member model was created."

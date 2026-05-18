@@ -33,9 +33,9 @@ def build_flow(state=None):
 
 
 def redirect_to_login(error=None):
-    """Redirects to the frontend login page. Allows specification of an error."""
+    """Redirects to the frontend sign-in page. Allows specification of an error."""
     error_param = f'?error={error}' if error else ''
-    return redirect(f'{settings.FRONTEND_URL}/login{error_param}')
+    return redirect(f'{settings.FRONTEND_URL}/signin{error_param}')
 
 
 class GoogleAuthStatusView(APIView):
@@ -176,11 +176,11 @@ class GoogleAuthCallbackView(APIView):
         # Log the member's user in
         login(request, user)
 
-        # If the member hasn't connected with Strava yet, send them to the registration page
+        # First-time login: send to onboarding
         if not hasattr(member, 'strava_auth'):
-            return redirect(f'{settings.FRONTEND_URL}/registration')
+            return redirect(f'{settings.FRONTEND_URL}/onboarding')
 
-        # Otherwise, redirect them to the home page
+        # Returning member: go to dashboard
         return redirect(settings.FRONTEND_URL)
 
 

@@ -5,6 +5,7 @@ from members.models import Member
 
 from .enums import SportType
 from .mapbox import generate_map
+from .utils import polyline_to_svg_path
 
 
 class Activity(models.Model):
@@ -81,6 +82,21 @@ class Activity(models.Model):
         null=True
     )
 
+    svg_path = models.TextField(
+        blank=True,
+        default='',
+        help_text="SVG path d attribute derived from the encoded polyline, for art visualization."
+    )
+
+    period = models.ForeignKey(
+        'metrics.CompetitionPeriod',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='activities',
+        help_text="The competition period this activity falls within."
+    )
+
     class Meta:
         verbose_name = "Activity"
         verbose_name_plural = "Activities"
@@ -91,20 +107,28 @@ class Activity(models.Model):
         return f"{self.member} on {self.datetime.strftime('%b %d')}: {self.minutes} min {self.sport_type}"
 
     def save(self, *args, **kwargs):
-        old_map = None  # The activity's old map
-        old_polyline = None  # The activity's old polyline
+        old_map = None
+        old_polyline = None
 
-        # Try to get the old instance's map and polyline to compare values
         try:
             old = Activity.objects.get(pk=self.pk)
             old_polyline = old.polyline
             old_map = old.map_image
         except Activity.DoesNotExist:
-            pass  # New instance
+            pass
 
         polyline_changed = old_polyline != self.polyline
         map_missing = self.polyline and not self.map_image
         update_map = polyline_changed or map_missing
+
+        # Keep svg_path in sync with polyline
+        if polyline_changed or not self.svg_path:
+            self.svg_path = polyline_to_svg_path(self.polyline) if self.polyline else ''
+
+        # Assign to competition period if not already set
+        if self.period_id is None and self.datetime:
+            from metrics.utils import get_period_for_datetime
+            self.period = get_period_for_datetime(self.datetime)
 
         if not update_map:
             return super().save(*args, **kwargs)

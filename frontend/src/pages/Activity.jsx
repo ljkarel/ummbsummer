@@ -4,39 +4,7 @@ import { TopBar } from '../components/layout/TopBar.jsx';
 import { BottomNav } from '../components/layout/BottomNav.jsx';
 import { PageFooter } from '../components/layout/PageFooter.jsx';
 import { SettingsDrawer } from '../components/SettingsDrawer.jsx';
-
-const ALL_ACTIVITIES = [
-  { day: "Wed · Jul 8", sport: "Run",  title: "Northrop sprints",          dur: "16:00",   mins: 16, dist: "1.8 mi",  elev: "22 ft",  pts: 16, route: "vert"   },
-  { day: "Wed · Jul 8", sport: "Run",  title: "Mill District zig",          dur: "22:11",   mins: 22, dist: "2.4 mi",  elev: "46 ft",  pts: 22, route: "zig"    },
-  { day: "Tue · Jul 7", sport: "Run",  title: "Stadium-loop M",             dur: "38:02",   mins: 38, dist: "4.2 mi",  elev: "118 ft", pts: 38, route: "m"      },
-  { day: "Tue · Jul 7", sport: "Run",  title: "Lake Harriet loop",          dur: "42:18",   mins: 42, dist: "5.1 mi",  elev: "112 ft", pts: 42, route: "loop"   },
-  { day: "Mon · Jul 6", sport: "Bike", title: "Greenway commute",           dur: "1:08:44", mins: 68, dist: "14.6 mi", elev: "284 ft", pts: 50, route: "linear" },
-  { day: "Mon · Jul 6", sport: "Run",  title: "Easy recovery jog",          dur: "26:02",   mins: 26, dist: "2.8 mi",  elev: "44 ft",  pts: 26, route: "small"  },
-  { day: "Sat · Jul 4", sport: "Run",  title: "Stone Arch + Mississippi",   dur: "55:11",   mins: 55, dist: "6.3 mi",  elev: "201 ft", pts: 55, route: "wander" },
-  { day: "Fri · Jul 3", sport: "Swim", title: "Bde Maka Ska open swim",     dur: "32:00",   mins: 32, dist: "0.9 mi",  elev: "—",      pts: 32, route: "swim"   },
-  { day: "Thu · Jul 2", sport: "Run",  title: "Como tempo",                 dur: "41:14",   mins: 41, dist: "5.4 mi",  elev: "88 ft",  pts: 41, route: "tempo"  },
-  { day: "Wed · Jul 1", sport: "Bike", title: "River Road climb",           dur: "1:22:08", mins: 82, dist: "18.4 mi", elev: "612 ft", pts: 58, route: "climb"  },
-  { day: "Mon · Jun 29",sport: "Run",  title: "Trumpet section meet-up run",dur: "44:50",   mins: 44, dist: "5.2 mi",  elev: "76 ft",  pts: 44, route: "wander" },
-  { day: "Sun · Jun 28", sport: "Run",  title: "Long base run",             dur: "1:18:30", mins: 78, dist: "9.1 mi",  elev: "184 ft", pts: 60, route: "wander" },
-  { day: "Sat · Jun 27", sport: "Run",  title: "Easy aerobic",              dur: "32:40",   mins: 32, dist: "3.9 mi",  elev: "62 ft",  pts: 32, route: "small"  },
-  { day: "Fri · Jun 26", sport: "Lift", title: "Lift + core",               dur: "48:00",   mins: 48, dist: "—",       elev: "—",      pts: 48, route: "lift"   },
-  { day: "Wed · Jun 24", sport: "Run",  title: "Kickoff team run",          dur: "36:22",   mins: 36, dist: "4.4 mi",  elev: "72 ft",  pts: 36, route: "loop"   },
-  { day: "Mon · Jun 22", sport: "Bike", title: "Greenway commute",          dur: "1:04:20", mins: 64, dist: "13.8 mi", elev: "262 ft", pts: 50, route: "linear" },
-];
-
-const ROUTE_PATHS = {
-  loop:   "M14 60 C 18 22, 60 14, 78 28 C 96 42, 88 78, 60 80 C 32 82, 10 78, 14 60 Z",
-  linear: "M8 78 C 30 70, 36 40, 56 38 C 74 36, 82 52, 92 22",
-  small:  "M22 60 C 30 40, 56 38, 64 56 C 70 70, 46 76, 30 70 Z",
-  wander: "M8 70 C 22 56, 18 36, 36 30 C 54 24, 56 48, 72 44 C 86 40, 86 18, 94 12",
-  m:      "M10 78 L 26 18 L 44 60 L 62 18 L 80 78",
-  zig:    "M10 22 L 32 22 L 32 60 L 56 60 L 56 22 L 80 22",
-  vert:   "M20 78 L 20 14 M 50 78 L 50 14 M 80 78 L 80 14",
-  tempo:  "M10 50 C 30 22, 50 78, 70 30 C 80 14, 90 60, 92 70",
-  climb:  "M8 80 L 30 70 L 50 50 L 70 22 L 92 14",
-  swim:   "M14 50 C 28 36, 42 64, 56 50 C 70 36, 84 64, 92 50",
-  lift:   "M30 30 L 70 30 M 50 20 L 50 70 M 30 70 L 70 70",
-};
+import { MY_ACTIVITIES, ROUTE_PATHS } from '../lib/mock.js';
 
 function RouteThumb({ kind }) {
   const d = ROUTE_PATHS[kind] || ROUTE_PATHS.loop;
@@ -155,7 +123,7 @@ export default function Activity() {
   const sports = ["All", "Run", "Bike", "Swim", "Lift"];
   const sorts = ["Recent", "Points", "Distance"];
 
-  const filtered = ALL_ACTIVITIES
+  const filtered = MY_ACTIVITIES
     .filter((a) => sport === "All" || a.sport === sport)
     .slice()
     .sort((a, b) => {
@@ -164,9 +132,9 @@ export default function Activity() {
       return 0;
     });
 
-  const totalMin = ALL_ACTIVITIES.reduce((s, a) => s + a.mins, 0);
-  const totalPts = ALL_ACTIVITIES.reduce((s, a) => s + a.pts, 0);
-  const totalActs = ALL_ACTIVITIES.length;
+  const totalMin = MY_ACTIVITIES.reduce((s, a) => s + a.mins, 0);
+  const totalPts = MY_ACTIVITIES.reduce((s, a) => s + a.pts, 0);
+  const totalActs = MY_ACTIVITIES.length;
 
   return (
     <div className="w-full min-h-screen bg-bg text-ink font-sans px-9 pt-7 pb-20 relative" data-page-root>

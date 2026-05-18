@@ -3,14 +3,7 @@ import { Mono, Rule, Tag, CountUp, ScoringCurve, RouteMap } from '../components/
 import { TopBar } from '../components/layout/TopBar.jsx';
 import { BottomNav } from '../components/layout/BottomNav.jsx';
 import { SettingsDrawer } from '../components/SettingsDrawer.jsx';
-import { SECTIONS, WEEKS, ME, WEEK_LABEL, WEEK_DATES, FREEZE } from '../lib/mock.js';
-
-const ACTIVITIES = [
-  { day: "Tue · Jul 7", title: "Lake Harriet loop",        sport: "Run",  dur: "42:18",  dist: "5.1 mi", elev: "112 ft", pts: 42, route: "loop"   },
-  { day: "Mon · Jul 6", title: "Greenway commute",          sport: "Bike", dur: "1:08:44",dist: "14.6 mi",elev: "284 ft", pts: 68, route: "linear" },
-  { day: "Sun · Jul 5", title: "Easy recovery jog",         sport: "Run",  dur: "26:02",  dist: "2.8 mi", elev: "44 ft",  pts: 26, route: "small"  },
-  { day: "Sat · Jul 4", title: "Stone Arch + Mississippi",  sport: "Run",  dur: "55:11",  dist: "6.3 mi", elev: "201 ft", pts: 55, route: "wander" },
-];
+import { SECTIONS, WEEKS, ME, WEEK_LABEL, WEEK_DATES, FREEZE, MY_ACTIVITIES, ROUTE_PATHS } from '../lib/mock.js';
 
 export default function Dashboard() {
   const liveWeekN = useMemo(() => WEEKS.find((w) => w.state === "live")?.n || 1, []);
@@ -224,7 +217,7 @@ export default function Dashboard() {
         </div>
         <Rule weight={1.5} />
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-          {ACTIVITIES.map((a, i) =>
+          {MY_ACTIVITIES.slice(0, 4).map((a, i) =>
             <div key={i} className={`px-[18px] pt-4 pb-[18px]${i < 3 ? " border-r border-rule-soft" : ""}`}>
               <div className="aspect-[10/7] bg-panel-alt mb-3 border border-rule-soft overflow-hidden">
                 <RouteMap kind={a.route} />

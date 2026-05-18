@@ -3,9 +3,15 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from members.models import Section
+from members.utils import get_active_competition
 
 from .models import CompetitionPeriod, SectionPeriodScore
-from .serializers import LiveSectionScoreSerializer, SectionPeriodScoreSerializer
+from .serializers import (
+    LiveSectionScoreSerializer,
+    PeriodSerializer,
+    ScoreboardSectionSerializer,
+    SectionPeriodScoreSerializer,
+)
 from .utils import (
     compute_member_points_for_period,
     compute_section_score_for_period,
@@ -45,34 +51,99 @@ class SectionPeriodScoreView(APIView):
         return Response(serializer.data)
 
 
+class PeriodListView(APIView):
+    """GET /api/metrics/periods/ — all periods for the active competition."""
+
+    def get(self, request):
+        competition = get_active_competition()
+        if competition is None:
+            return Response([])
+
+        member = request.user.member
+        periods = competition.periods.order_by('start_date')
+        result = []
+        for period in periods:
+            you = None
+            if period.state != 'future':
+                you = round(compute_member_points_for_period(member, period), 2)
+            result.append({
+                'id': period.pk,
+                'name': period.name,
+                'state': period.state,
+                'start_date': period.start_date,
+                'end_date': period.end_date,
+                'freeze_datetime': period.freeze_datetime,
+                'you': you,
+            })
+
+        return Response(PeriodSerializer(result, many=True).data)
+
+
 class ScoreboardView(APIView):
     """
-    Returns scores for all sections for a given period, sorted by score descending.
-    Uses frozen SectionPeriodScore if available; falls back to live computation for
-    the current period.
+    GET /api/metrics/scoreboard/ — section leaderboard with per-period history and rank trend.
     """
 
     def get(self, request):
-        period_id = request.query_params.get('period')
-        if period_id:
-            period = get_object_or_404(CompetitionPeriod, pk=period_id)
-        else:
-            period = get_current_period()
-            if period is None:
-                return Response({'detail': 'No active competition period.'}, status=404)
+        competition = get_active_competition()
+        if competition is None:
+            return Response([])
 
-        frozen = SectionPeriodScore.objects.filter(period=period).exists()
+        member = request.user.member
+        periods = list(competition.periods.order_by('start_date'))
+        sections = list(Section.objects.all())
 
-        if frozen:
-            scores = list(
-                SectionPeriodScore.objects.filter(period=period).select_related('section', 'period')
-            )
-            scores.sort(key=lambda s: s.score, reverse=True)
-            serializer = SectionPeriodScoreSerializer(scores, many=True)
-        else:
-            sections = Section.objects.all()
-            live_scores = [compute_section_score_for_period(s, period) for s in sections]
-            live_scores.sort(key=lambda s: s['score'], reverse=True)
-            serializer = LiveSectionScoreSerializer(live_scores, many=True)
+        # Build score per section per period: {section.pk: [score_or_null, ...]}
+        period_scores: dict[int, list[float | None]] = {s.pk: [] for s in sections}
 
-        return Response(serializer.data)
+        for period in periods:
+            if period.state == 'future':
+                for s in sections:
+                    period_scores[s.pk].append(None)
+                continue
+
+            frozen_qs = SectionPeriodScore.objects.filter(period=period).select_related('section')
+            frozen_map = {fs.section_id: fs.score for fs in frozen_qs}
+
+            for s in sections:
+                if s.pk in frozen_map:
+                    period_scores[s.pk].append(frozen_map[s.pk])
+                else:
+                    live = compute_section_score_for_period(s, period)
+                    period_scores[s.pk].append(live['score'])
+
+        # Compute season totals and rank trend
+        def season_total(section):
+            return round(sum(v for v in period_scores[section.pk] if v is not None), 2)
+
+        # Rank sections for the two most recent non-future periods
+        non_future_indices = [i for i, p in enumerate(periods) if p.state != 'future']
+
+        def get_ranks_at(period_index):
+            scored = [(s, period_scores[s.pk][period_index]) for s in sections if period_scores[s.pk][period_index] is not None]
+            scored.sort(key=lambda x: x[1], reverse=True)
+            return {s.pk: rank + 1 for rank, (s, _) in enumerate(scored)}
+
+        trend_map: dict[int, int | None] = {s.pk: None for s in sections}
+        if len(non_future_indices) >= 2:
+            prev_ranks = get_ranks_at(non_future_indices[-2])
+            curr_ranks = get_ranks_at(non_future_indices[-1])
+            for s in sections:
+                if s.pk in prev_ranks and s.pk in curr_ranks:
+                    # Positive trend = moved up (lower rank number)
+                    trend_map[s.pk] = prev_ranks[s.pk] - curr_ranks[s.pk]
+
+        result = []
+        for s in sections:
+            result.append({
+                'name': s.name,
+                'slug': s.slug,
+                'members': s.members.count(),
+                'periods': period_scores[s.pk],
+                'season': season_total(s),
+                'trend': trend_map[s.pk],
+                'is_me': s.pk == member.section_id,
+            })
+
+        result.sort(key=lambda x: x['season'], reverse=True)
+        return Response(ScoreboardSectionSerializer(result, many=True).data)

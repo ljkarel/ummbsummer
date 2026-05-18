@@ -4,61 +4,7 @@ import { TopBar } from '../components/layout/TopBar.jsx';
 import { BottomNav } from '../components/layout/BottomNav.jsx';
 import { PageFooter } from '../components/layout/PageFooter.jsx';
 import { SettingsDrawer } from '../components/SettingsDrawer.jsx';
-
-const WEEK_ACTIVITIES = [
-  { id: "a1", day: "Wed · Jul 8", title: "Northrop sprints",   sport: "Run",  dist: "1.8 mi",  dur: "16:00",   path: "M20 78 L 20 14 M 50 78 L 50 14 M 80 78 L 80 14" },
-  { id: "a2", day: "Wed · Jul 8", title: "Mill District zig",  sport: "Run",  dist: "2.4 mi",  dur: "22:11",   path: "M10 22 L 32 22 L 32 60 L 56 60 L 56 22 L 80 22" },
-  { id: "a3", day: "Tue · Jul 7", title: "Stadium-loop M",     sport: "Run",  dist: "4.2 mi",  dur: "38:02",   path: "M10 78 L 26 18 L 44 60 L 62 18 L 80 78" },
-  { id: "a4", day: "Tue · Jul 7", title: "Lake Harriet loop",  sport: "Run",  dist: "5.1 mi",  dur: "42:18",   path: "M14 60 C 18 22, 60 14, 78 28 C 96 42, 88 78, 60 80 C 32 82, 10 78, 14 60 Z" },
-  { id: "a5", day: "Mon · Jul 6", title: "Greenway commute",   sport: "Bike", dist: "14.6 mi", dur: "1:08:44", path: "M8 78 C 30 70, 36 40, 56 38 C 74 36, 82 52, 92 22" },
-  { id: "a6", day: "Mon · Jul 6", title: "Easy recovery jog",  sport: "Run",  dist: "2.8 mi",  dur: "26:02",   path: "M22 60 C 30 40, 56 38, 64 56 C 70 70, 46 76, 30 70 Z" },
-];
-
-const WEEKS = [
-  {
-    n: 1, label: "WK 01", state: "done", dates: "Jun 22 – Jun 28", theme: "Loop",
-    submissions: [
-      { who: "@maria.t",  section: "Trumpets",    title: "First loop",       path: "M16 60 C 22 18, 78 18, 84 60 C 78 82, 22 82, 16 60 Z", likes: 41, liked: true  },
-      { who: "@theo.l",   section: "Color Guard", title: "Como round-trip",  path: "M50 14 C 20 18, 14 60, 50 78 C 86 60, 80 18, 50 14 Z", likes: 38, liked: false },
-      { who: "@aliya.r",  section: "Saxes",       title: "Bde Maka Ska",     path: "M18 50 C 22 22, 78 22, 82 50 C 78 78, 22 78, 18 50 Z", likes: 27, liked: false },
-      { who: "@dev.c",    section: "Trombones",   title: "Mississippi bend", path: "M14 60 C 18 22, 60 14, 78 28 C 96 42, 88 78, 60 80 C 32 82, 10 78, 14 60 Z", likes: 19, liked: false },
-      { who: "@ben.f",    section: "Mellos",      title: "Mini circuit",     path: "M30 50 C 32 32, 68 32, 70 50 C 68 68, 32 68, 30 50 Z", likes: 12, liked: false },
-      { who: "@gus.r",    section: "Sousas",      title: "Stadium oval",     path: "M14 50 C 18 30, 82 30, 86 50 C 82 70, 18 70, 14 50 Z", likes: 8,  liked: false },
-    ],
-  },
-  {
-    n: 2, label: "WK 02", state: "done", dates: "Jun 29 – Jul 5", theme: "Letter U",
-    submissions: [
-      { who: "@sun.p",   section: "Drumline",    title: "U-bend river",      path: "M18 14 L 18 60 C 18 80, 82 80, 82 60 L 82 14", likes: 52, liked: true  },
-      { who: "@kj.m",    section: "Flutes",      title: "Northrop horseshoe",path: "M22 14 L 22 50 C 22 72, 78 72, 78 50 L 78 14", likes: 36, liked: false },
-      { who: "@dev.c",   section: "Trombones",   title: "Lakefront U",       path: "M16 14 L 16 56 C 16 80, 84 80, 84 56 L 84 14", likes: 31, liked: true  },
-      { who: "@aliya.r", section: "Saxes",       title: "Mill cup",          path: "M24 14 L 24 54 C 24 70, 76 70, 76 54 L 76 14", likes: 22, liked: false },
-      { who: "@theo.l",  section: "Color Guard", title: "Tin Cup",           path: "M28 18 L 28 52 C 28 66, 72 66, 72 52 L 72 18", likes: 14, liked: false },
-      { who: "@ben.f",   section: "Mellos",      title: "Late-night U",      path: "M20 16 L 20 58 C 20 76, 80 76, 80 58 L 80 16", likes: 9,  liked: false },
-    ],
-  },
-  {
-    n: 3, label: "WK 03", state: "live", dates: "Jul 6 – Jul 12", theme: "Letter M",
-    submissions: [
-      { who: "@maria.t", section: "Trumpets",    title: "Block M, Como",     path: "M10 78 L 26 18 L 44 60 L 62 18 L 80 78",                                      likes: 23, liked: false },
-      { who: "@ben.f",   section: "Mellos",      title: "Mini M",            path: "M10 22 L 32 22 L 32 60 L 56 60 L 56 22 L 80 22",                              likes: 18, liked: true  },
-      { who: "@aliya.r", section: "Saxes",       title: "Stadium M",         path: "M16 78 L 28 14 L 50 64 L 72 14 L 84 78",                                      likes: 14, liked: false },
-      { who: "@dev.c",   section: "Trombones",   title: "Mississippi M",     path: "M8 78 C 18 22, 28 78, 50 18 C 72 78, 82 22, 92 78",                           likes: 11, liked: false },
-      { who: "@theo.l",  section: "Color Guard", title: "Twin Cities M",     path: "M14 78 L 26 22 L 50 70 L 74 22 L 86 78",                                      likes: 7,  liked: false },
-      { who: "@gus.r",   section: "Sousas",      title: "Brick M",           path: "M16 78 L 16 14 L 34 14 L 34 50 L 50 30 L 66 50 L 66 14 L 84 14 L 84 78",     likes: 5,  liked: false },
-    ],
-  },
-];
-
-const CURRENT_WEEK = 3;
-
-const INITIAL_SUBMISSION = {
-  activityId: "a3",
-  rotation: 0,
-  title: "Stadium M",
-  visibility: "public",
-  submittedAt: "Tue · Jul 7 · 8:42pm",
-};
+import { MY_ACTIVITIES, ROUTE_PATHS, WEEKS, ART_WEEKS, MY_ART_SUBMISSION } from '../lib/mock.js';
 
 function tinyMap({ d, accent }) {
   return (
@@ -91,7 +37,7 @@ function WeekNav({ current, selected, onSelect }) {
         Browse week
       </Mono>
       <div className="flex border border-rule-soft">
-        {WEEKS.map((w) => {
+        {ART_WEEKS.map((w) => {
           const isSel = w.n === selected;
           const isLive = w.n === current;
           return (
@@ -100,7 +46,7 @@ function WeekNav({ current, selected, onSelect }) {
               onClick={() => onSelect(w.n)}
               className={[
                 "font-mono text-[10px] tracking-[.12em] uppercase py-[7px] px-3 border-none cursor-pointer flex items-center gap-1.5",
-                w.n < WEEKS.length ? "border-r border-rule-soft" : "",
+                w.n < ART_WEEKS.length ? "border-r border-rule-soft" : "",
                 isSel ? "bg-ink text-panel font-bold" : "bg-transparent text-ink-soft font-medium",
               ].join(" ")}
             >
@@ -254,19 +200,22 @@ function SubmissionTile({ s, onLike }) {
 }
 
 export default function StravaArt() {
+  const currentWeekN = WEEKS.find((w) => w.state === "live")?.n || 1;
+  const weekActivities = MY_ACTIVITIES.filter((a) => a.week === currentWeekN);
+
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [selectedWeek, setSelectedWeek] = useState(CURRENT_WEEK);
-  const week = WEEKS.find((w) => w.n === selectedWeek);
+  const [selectedWeek, setSelectedWeek] = useState(currentWeekN);
+  const week = ART_WEEKS.find((w) => w.n === selectedWeek);
   const isLive = week.state === "live";
 
-  const [activityId, setActivityId] = useState(INITIAL_SUBMISSION.activityId);
-  const [rotation, setRotation] = useState(INITIAL_SUBMISSION.rotation);
-  const [title, setTitle] = useState(INITIAL_SUBMISSION.title);
-  const [visibility, setVisibility] = useState(INITIAL_SUBMISSION.visibility);
+  const [activityId, setActivityId] = useState(MY_ART_SUBMISSION.activityId);
+  const [rotation, setRotation] = useState(MY_ART_SUBMISSION.rotation);
+  const [title, setTitle] = useState(MY_ART_SUBMISSION.title);
+  const [visibility, setVisibility] = useState(MY_ART_SUBMISSION.visibility);
 
   const [wallByWeek, setWallByWeek] = useState(() => {
     const o = {};
-    for (const w of WEEKS) o[w.n] = w.submissions.map((s) => ({ ...s }));
+    for (const w of ART_WEEKS) o[w.n] = w.submissions.map((s) => ({ ...s }));
     return o;
   });
   const wall = useMemo(() => {
@@ -283,7 +232,7 @@ export default function StravaArt() {
     });
   };
 
-  const activity = WEEK_ACTIVITIES.find((a) => a.id === activityId) || WEEK_ACTIVITIES[0];
+  const activity = weekActivities.find((a) => a.id === activityId) || weekActivities[0];
   const rotL = () => setRotation((r) => (r - 45 + 360) % 360);
   const rotR = () => setRotation((r) => (r + 45) % 360);
 
@@ -323,7 +272,7 @@ export default function StravaArt() {
         </div>
 
         <div className="flex flex-col gap-3 items-start">
-          <WeekNav current={CURRENT_WEEK} selected={selectedWeek} onSelect={setSelectedWeek} />
+          <WeekNav current={currentWeekN} selected={selectedWeek} onSelect={setSelectedWeek} />
           <div className="bg-panel border border-rule-soft w-full p-[14px] px-[18px]" style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)" }}>
             <div>
               <Mono className="text-[10px] text-ink-soft tracking-[.14em] uppercase">Theme</Mono>
@@ -344,11 +293,11 @@ export default function StravaArt() {
           <section>
             <div className="flex justify-between items-baseline mb-[10px]">
               <h2 className="font-tight font-extrabold text-[22px] tracking-[-0.02em] m-0">Pick one activity</h2>
-              <Mono className="text-[11px] text-ink-soft tracking-[.1em] uppercase">{WEEK_ACTIVITIES.length} from {week.dates}</Mono>
+              <Mono className="text-[11px] text-ink-soft tracking-[.1em] uppercase">{weekActivities.length} from {week.dates}</Mono>
             </div>
             <Rule />
             <div className="grid grid-cols-1 sm:grid-cols-2">
-              {WEEK_ACTIVITIES.map((a, i) => {
+              {weekActivities.map((a, i) => {
                 const isSel = activityId === a.id;
                 return (
                   <button
@@ -357,7 +306,7 @@ export default function StravaArt() {
                     className={[
                       "text-left border-none bg-transparent p-4 pb-[18px] cursor-pointer font-sans text-ink flex gap-3 items-start",
                       i % 2 === 0 ? "border-r border-rule-soft" : "",
-                      i < WEEK_ACTIVITIES.length - 2 ? "border-b border-rule-soft" : "",
+                      i < weekActivities.length - 2 ? "border-b border-rule-soft" : "",
                     ].join(" ")}
                   >
                     <div
@@ -367,7 +316,7 @@ export default function StravaArt() {
                         boxShadow: isSel ? `inset 0 0 0 2px var(--brand)` : "none",
                       }}
                     >
-                      {tinyMap({ d: a.path, accent: isSel ? "var(--brand)" : "var(--ink-soft)" })}
+                      {tinyMap({ d: ROUTE_PATHS[a.route], accent: isSel ? "var(--brand)" : "var(--ink-soft)" })}
                     </div>
                     <div className="flex-1 min-w-0">
                       <Mono className="text-[10px] text-ink-soft tracking-[.12em] uppercase">{a.day} · {a.sport}</Mono>
@@ -398,12 +347,12 @@ export default function StravaArt() {
               <h2 className="font-tight font-extrabold text-[22px] tracking-[-0.02em] m-0">Your submission</h2>
               <div className="inline-flex items-center gap-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-good" />
-                <Mono className="text-[10px] text-ink-soft tracking-[.12em] uppercase">Submitted · {INITIAL_SUBMISSION.submittedAt}</Mono>
+                <Mono className="text-[10px] text-ink-soft tracking-[.12em] uppercase">Submitted · {MY_ART_SUBMISSION.submittedAt}</Mono>
               </div>
             </div>
             <Rule />
             <div className="mt-[10px]">
-              <CompositionCanvas path={activity.path} rotation={rotation} title={title} visibility={visibility} />
+              <CompositionCanvas path={ROUTE_PATHS[activity.route]} rotation={rotation} title={title} visibility={visibility} />
             </div>
             <div className="mt-3 flex justify-between items-center py-[10px] px-3 bg-panel border border-rule-soft">
               <Mono className="text-[10px] text-ink-soft tracking-[.14em] uppercase">Orient your route</Mono>

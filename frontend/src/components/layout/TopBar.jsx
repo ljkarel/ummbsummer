@@ -59,9 +59,14 @@ export function TopBar({ settingsOpen, onAvatarClick }) {
         <button
           onClick={onAvatarClick}
           aria-label="Open settings"
-          className="w-8 h-8 rounded-full bg-brand text-chip-ink grid place-items-center font-bold text-[13px] border-none cursor-pointer font-tight"
-          style={{ boxShadow: settingsOpen ? '0 0 0 3px var(--bg), 0 0 0 5px var(--brand)' : 'none', transition: 'box-shadow .15s' }}
-        >JM</button>
+          className="w-8 h-8 bg-transparent border border-rule-soft grid place-items-center cursor-pointer"
+          style={{ outline: settingsOpen ? '2px solid var(--brand)' : 'none', outlineOffset: '1px', transition: 'outline .1s' }}
+        >
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+            <circle cx="8" cy="5.5" r="2.5" stroke="var(--ink)" strokeWidth="1.4" />
+            <path d="M2 14c0-3.3 2.7-6 6-6s6 2.7 6 6" stroke="var(--ink)" strokeWidth="1.4" strokeLinecap="round" />
+          </svg>
+        </button>
       </div>
     </div>
   );

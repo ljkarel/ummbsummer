@@ -1,7 +1,31 @@
 import csv
-from datetime import UTC, datetime, timezone
+from datetime import UTC, datetime, timedelta, timezone
+
+from django.utils import timezone as dj_timezone
 
 from .models import Member, Section, StravaAuth
+
+
+def compute_member_streak(member) -> int:
+    """Count consecutive days ending today where the member logged at least one activity."""
+    dates = set(
+        member.activities
+        .filter(private=False)
+        .values_list('datetime__date', flat=True)
+    )
+    streak = 0
+    day = dj_timezone.now().date()
+    while day in dates:
+        streak += 1
+        day -= timedelta(days=1)
+    return streak
+
+
+def get_active_competition():
+    """Return the Competition whose date range contains today, or None."""
+    from metrics.models import Competition
+    today = dj_timezone.now().date()
+    return Competition.objects.filter(start_date__lte=today, end_date__gte=today).first()
 
 
 def import_roster(csv_path="./roster.csv"):
