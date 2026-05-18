@@ -9,9 +9,10 @@ export function useFlipAnimation(list) {
     const children = Array.from(listRef.current.children);
     const newPositions = {};
 
+    const containerTop = listRef.current.getBoundingClientRect().top;
     children.forEach((child) => {
       const name = child.dataset.section;
-      newPositions[name] = child.getBoundingClientRect().top;
+      newPositions[name] = child.getBoundingClientRect().top - containerTop;
       const prev = prevPositions.current[name];
       if (prev != null) {
         const delta = prev - newPositions[name];
