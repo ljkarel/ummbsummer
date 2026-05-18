@@ -11,11 +11,6 @@ const YEAR_OPTIONS = [
   { value: 5, label: '5th Year+' },
 ];
 
-const FALLBACK_SECTIONS = [
-  'Alto Saxophone', 'Baritone/Euphonium', 'Baritone Saxophone', 'Battery Percussion',
-  'Clarinet', 'Color Guard', 'Drum Major', 'Mellophone',
-  'Piccolo/Flute', 'Pit/Front Ensemble', 'Sousaphone/Tuba', 'Tenor Saxophone', 'Trombone', 'Trumpet',
-];
 
 const UMN_EMAIL_RE = /^[^\s@]+@umn\.edu$/i;
 
@@ -47,7 +42,8 @@ const INPUT_CLS = 'block w-full px-4 py-3.5 border border-rule-soft bg-panel tex
 const INPUT_ERR_STYLE = { outline: '2px solid var(--brand)', outlineOffset: '-1px' };
 
 export default function RosterRequest() {
-  const [sections, setSections] = useState(FALLBACK_SECTIONS.map((s) => ({ name: s })));
+  const [sections, setSections] = useState(null);
+  const [sectionsError, setSectionsError] = useState(false);
   const [form, setForm] = useState({ firstName: '', lastName: '', email: '', section: '', year: '', notes: '' });
   const [errors, setErrors] = useState({});
   const [submitState, setSubmitState] = useState('idle'); // idle | submitting | success | error
@@ -56,8 +52,8 @@ export default function RosterRequest() {
 
   useEffect(() => {
     getSections()
-      .then((data) => { if (data?.length) setSections(data); })
-      .catch(() => {});
+      .then((data) => setSections(data))
+      .catch(() => setSectionsError(true));
   }, []);
 
   function set(field, value) {
@@ -128,6 +124,33 @@ export default function RosterRequest() {
           </Link>
         </div>
 
+        <div className="opacity-[.35]"><StaffLines h={24} /></div>
+      </div>
+    );
+  }
+
+  if (sections === null && !sectionsError) {
+    return (
+      <div className="w-full min-h-screen bg-bg text-ink font-sans px-9 pt-8 pb-7 flex flex-col relative overflow-hidden" data-page-root>
+        <FloatRoutes />
+        <div className="opacity-[.35]"><StaffLines h={24} /></div>
+        <div className="flex-1 flex items-center justify-center">
+          <Mono className="text-[12px] text-ink-soft tracking-[.14em] uppercase">Loading…</Mono>
+        </div>
+        <div className="opacity-[.35]"><StaffLines h={24} /></div>
+      </div>
+    );
+  }
+
+  if (sectionsError) {
+    return (
+      <div className="w-full min-h-screen bg-bg text-ink font-sans px-9 pt-8 pb-7 flex flex-col relative overflow-hidden" data-page-root>
+        <FloatRoutes />
+        <div className="opacity-[.35]"><StaffLines h={24} /></div>
+        <div className="flex-1 flex flex-col items-center justify-center gap-3">
+          <Mono className="text-[12px] text-brand tracking-[.14em] uppercase">Could not load sections</Mono>
+          <p className="text-sm text-ink-soft">Please refresh and try again.</p>
+        </div>
         <div className="opacity-[.35]"><StaffLines h={24} /></div>
       </div>
     );

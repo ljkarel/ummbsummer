@@ -4,21 +4,7 @@ import { TopBar } from '../components/layout/TopBar.jsx';
 import { BottomNav } from '../components/layout/BottomNav.jsx';
 import { PageFooter } from '../components/layout/PageFooter.jsx';
 import { SettingsDrawer } from '../components/SettingsDrawer.jsx';
-import { getRoster } from '../lib/api.js';
-
-const SECTION_SLUGS = [
-  { name: 'All', slug: '' },
-  { name: 'Baritones', slug: 'baritone' },
-  { name: 'Clarinets', slug: 'clarinets' },
-  { name: 'Color Guard', slug: 'color-guard' },
-  { name: 'Drumline', slug: 'drumline' },
-  { name: 'Flutes', slug: 'flutes' },
-  { name: 'Mellophones', slug: 'mellophones' },
-  { name: 'Pit', slug: 'pit' },
-  { name: 'Trombones', slug: 'trombones' },
-  { name: 'Trumpets', slug: 'trumpets' },
-  { name: 'Tubas', slug: 'tubas' },
-];
+import { getRoster, getSections } from '../lib/api.js';
 
 function StatusDot({ status }) {
   const dotClass = status === 'connected' ? 'bg-good' : status === 'pending' ? 'bg-accent' : 'bg-ink-soft';
@@ -51,10 +37,15 @@ function MemberCard({ m }) {
 
 export default function Roster() {
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [sections, setSections] = useState(null);
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [sectionFilter, setSectionFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
+
+  useEffect(() => {
+    getSections().then((data) => setSections([{ name: 'All', slug: '' }, ...data]));
+  }, []);
 
   useEffect(() => {
     setLoading(true);
@@ -97,7 +88,7 @@ export default function Roster() {
           <Mono className="text-[11px] text-ink-soft tracking-[.18em] uppercase">Roster · Summer '26</Mono>
           <h1 className="font-tight font-extrabold text-[56px] leading-none tracking-[-0.035em] mt-2 text-balance">
             <Mono className="font-tight font-extrabold text-[56px] tracking-[-0.035em] text-brand">{allStats.total}</Mono> members across<br />
-            {SECTION_SLUGS.length - 1} sections.
+            {sections ? sections.length - 1 : '…'} sections.
           </h1>
           <div className="flex gap-2.5 mt-4 flex-wrap">
             <Tag t={`${allStats.connected} connected to Strava`} className="bg-chip text-chip-ink" />
@@ -146,7 +137,9 @@ export default function Roster() {
       <div className="mt-[18px] mb-3.5 flex flex-col gap-2.5">
         <div className="flex items-center gap-2.5 flex-wrap">
           <Mono className="text-[10px] text-ink-soft tracking-[.14em] uppercase">Section</Mono>
-          {SECTION_SLUGS.map(({ name, slug }) => (
+          {sections === null ? (
+            <Mono className="text-[10px] text-ink-soft tracking-[.1em]">Loading…</Mono>
+          ) : sections.map(({ name, slug }) => (
             <button
               key={name}
               onClick={() => setSectionFilter(slug)}

@@ -6,7 +6,7 @@ from .models import Member, RosterRequest, Section
 class SectionNameSerializer(serializers.ModelSerializer):
     class Meta:
         model = Section
-        fields = ['name']
+        fields = ['name', 'slug']
 
 
 class RosterRequestSerializer(serializers.ModelSerializer):
