@@ -77,9 +77,8 @@ export default function Roster() {
   }, []);
 
   return (
-    <div className="w-full min-h-screen bg-bg text-ink font-sans px-9 pt-7 pb-20 relative" data-page-root>
+    <div className="w-full min-h-screen bg-bg text-ink font-sans px-9 pt-3 pb-20 relative" data-page-root>
       <TopBar />
-      <Rule />
 
       {/* Hero */}
       <div className="grid grid-cols-1 lg:grid-cols-[1.5fr_1fr] gap-8 items-end py-[26px]">

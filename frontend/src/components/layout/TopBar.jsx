@@ -1,8 +1,11 @@
+import { useLayoutEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Cog6ToothIcon } from '@heroicons/react/24/outline';
-import { Mono } from '../ui.jsx';
+import { Mono, Rule } from '../ui.jsx';
 import { BASE } from '../../lib/api.js';
 import { useSettings } from '../../contexts/SettingsContext.jsx';
+import { useScrollDirection } from '../../hooks/useScrollDirection.js';
+
 const TODAY = new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 
 const NAV_ITEMS = [
@@ -17,53 +20,71 @@ export function TopBar({ stravaConnected = true }) {
   const { open: settingsOpen, setOpen: setSettingsOpen } = useSettings();
   const isActive = (to) => to === '/' ? pathname === '/' : pathname.startsWith(to);
 
+  const headerRef = useRef(null);
+  const [headerH, setHeaderH] = useState(0);
+  const visible = useScrollDirection();
+
+  useLayoutEffect(() => {
+    if (headerRef.current) setHeaderH(headerRef.current.offsetHeight);
+  }, []);
+
   return (
-    <div className="flex items-center justify-between pb-3.5 gap-4">
-      <div className="relative flex items-center">
-        <img src="/logo_title.svg" alt="Logo" className="absolute h-12 w-12 top-1/2" style={{ zIndex: 0, transform: 'translateY(calc(-50% - 2px)) translateX(3px)' }} />
-        <div className="font-tight font-extrabold left-5 text-[22px] tracking-[-0.02em] relative" style={{ zIndex: 1 }}>
-          UMMB<span className="text-brand">·</span>SUMMER
-          <Mono className="font-medium text-sm ml-2 text-ink-soft">{'\'26'}</Mono>
-        </div>
-      </div>
+    <>
+      <div style={{ height: headerH }} />
+      <div
+        ref={headerRef}
+        className="fixed top-0 left-0 right-0 z-40 bg-bg"
+        style={{ transform: visible ? 'none' : 'translateY(-100%)', transition: 'transform .2s ease' }}
+      >
+        <div className="px-9 pt-3.5 pb-3.5 flex items-center justify-between gap-4">
+          <div className="relative flex items-center">
+            <img src="/logo_title.svg" alt="Logo" className="absolute h-12 w-12 top-1/2" style={{ zIndex: 0, transform: 'translateY(calc(-50% - 2px)) translateX(3px)' }} />
+            <div className="font-tight font-extrabold left-5 text-[22px] tracking-[-0.02em] relative" style={{ zIndex: 1 }}>
+              UMMB<span className="text-brand">·</span>SUMMER
+              <Mono className="font-medium text-sm ml-2 text-ink-soft">{'\'26'}</Mono>
+            </div>
+          </div>
 
-      <div className="flex items-center gap-3.5">
-        <Mono className="hidden sm:block text-[11px] text-ink-soft tracking-[.1em] uppercase">
-          {TODAY}
-        </Mono>
+          <div className="flex items-center gap-3.5">
+            <Mono className="hidden md:block text-[11px] text-ink-soft tracking-[.1em] uppercase">
+              {TODAY}
+            </Mono>
 
-        <nav className="hidden sm:flex gap-[18px] text-[13px]">
-          {NAV_ITEMS.map((item) => {
-            const active = isActive(item.to);
-            return (
-              <Link
-                key={item.to}
-                to={item.to}
-                className={`no-underline pb-0.5 border-b-2 ${
-                  active
-                    ? 'font-semibold text-ink border-brand'
-                    : 'font-normal text-ink-soft border-transparent'
-                }`}
-              >{item.label}</Link>
-            );
-          })}
-          {!stravaConnected && (
+            <nav className="hidden md:flex gap-[18px] text-[13px]">
+              {NAV_ITEMS.map((item) => {
+                const active = isActive(item.to);
+                return (
+                  <Link
+                    key={item.to}
+                    to={item.to}
+                    className={`no-underline pb-0.5 border-b-2 ${
+                      active
+                        ? 'font-semibold text-ink border-brand'
+                        : 'font-normal text-ink-soft border-transparent'
+                    }`}
+                  >{item.label}</Link>
+                );
+              })}
+              {!stravaConnected && (
+                <button
+                  onClick={() => { window.location.href = `${BASE}/api/strava/init/`; }}
+                  className="pb-0.5 border-b-2 border-brand font-semibold text-brand text-[13px] bg-transparent border-l-0 border-r-0 border-t-0 cursor-pointer p-0"
+                >Connect Strava</button>
+              )}
+            </nav>
+
             <button
-              onClick={() => { window.location.href = `${BASE}/api/strava/init/`; }}
-              className="pb-0.5 border-b-2 border-brand font-semibold text-brand text-[13px] bg-transparent border-l-0 border-r-0 border-t-0 cursor-pointer p-0"
-            >Connect Strava</button>
-          )}
-        </nav>
-
-        <button
-          onClick={() => setSettingsOpen((o) => !o)}
-          aria-label="Open settings"
-          className="hidden sm:flex w-5 h-5 bg-transparent cursor-pointer items-center justify-center"
-          style={{ color: settingsOpen ? 'var(--brand)' : 'var(--ink)', transition: 'color .1s' }}
-        >
-          <Cog6ToothIcon className="w-5 h-5" />
-        </button>
+              onClick={() => setSettingsOpen((o) => !o)}
+              aria-label="Open settings"
+              className="flex w-5 h-5 bg-transparent cursor-pointer items-center justify-center"
+              style={{ color: settingsOpen ? 'var(--brand)' : 'var(--ink)', transition: 'color .1s' }}
+            >
+              <Cog6ToothIcon className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+        <Rule soft />
       </div>
-    </div>
+    </>
   );
 }

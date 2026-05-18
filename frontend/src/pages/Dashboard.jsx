@@ -191,9 +191,8 @@ export default function Dashboard() {
   const showStravaModal = !stravaModalDismissed && (stravaWasCancelled || (me !== null && !stravaConnected));
 
   return (
-    <div className="w-full min-h-screen bg-bg text-ink font-sans px-9 pt-7 pb-20 relative" data-page-root>
+    <div className="w-full min-h-screen bg-bg text-ink font-sans px-9 pt-3 pb-20 relative" data-page-root>
       <TopBar stravaConnected={stravaConnected} />
-      <Rule weight={1.5} />
 
       {/* Strava not-connected modal */}
       {showStravaModal && (

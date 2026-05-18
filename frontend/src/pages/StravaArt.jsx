@@ -356,9 +356,8 @@ export default function StravaArt() {
     : '';
 
   return (
-    <div className="w-full min-h-screen bg-bg text-ink font-sans px-9 pt-7 pb-20 relative" data-page-root>
+    <div className="w-full min-h-screen bg-bg text-ink font-sans px-9 pt-3 pb-20 relative" data-page-root>
       <TopBar />
-      <Rule />
 
       {/* Hero grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-end py-[26px] pb-[22px]">

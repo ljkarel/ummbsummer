@@ -183,9 +183,8 @@ export default function Activity() {
   }, [activities, sort]);
 
   return (
-    <div className="w-full min-h-screen bg-bg text-ink font-sans px-9 pt-7 pb-20 relative" data-page-root>
+    <div className="w-full min-h-screen bg-bg text-ink font-sans px-9 pt-3 pb-20 relative" data-page-root>
       <TopBar />
-      <Rule weight={1.5} />
 
       <div className="py-[26px] pb-[22px]">
         <Mono className="text-[11px] text-ink-soft tracking-[.18em] uppercase">Your activity — summer to date</Mono>

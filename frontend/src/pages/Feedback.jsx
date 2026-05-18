@@ -59,9 +59,8 @@ export default function Feedback() {
 
   if (submitState === 'success') {
     return (
-      <div className="w-full min-h-screen bg-bg text-ink font-sans px-9 pt-7 pb-20 relative" data-page-root>
+      <div className="w-full min-h-screen bg-bg text-ink font-sans px-9 pt-3 pb-20 relative" data-page-root>
         <TopBar settingsOpen={settingsOpen} onAvatarClick={() => setSettingsOpen((o) => !o)} stravaConnected={me?.strava_connected} />
-        <Rule weight={1.5} />
         <SettingsDrawer open={settingsOpen} onClose={() => setSettingsOpen(false)} />
 
         <div className="py-[26px] max-w-[540px]">
@@ -88,9 +87,8 @@ export default function Feedback() {
   }
 
   return (
-    <div className="w-full min-h-screen bg-bg text-ink font-sans px-9 pt-7 pb-20 relative" data-page-root>
+    <div className="w-full min-h-screen bg-bg text-ink font-sans px-9 pt-3 pb-20 relative" data-page-root>
       <TopBar settingsOpen={settingsOpen} onAvatarClick={() => setSettingsOpen((o) => !o)} stravaConnected={me?.strava_connected} />
-      <Rule weight={1.5} />
       <SettingsDrawer open={settingsOpen} onClose={() => setSettingsOpen(false)} />
 
       <div className="py-[26px] pb-[22px]">
