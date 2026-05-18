@@ -537,7 +537,7 @@ export default function StravaArt() {
           <h2 className="font-tight font-extrabold text-[22px] tracking-[-0.02em] m-0">
             {isSelectedLive ? "This week's wall" : `${selectedPeriodLabel} wall · ${theme ?? ''}`}
           </h2>
-          <Mono className="text-[11px] text-ink-soft tracking-[.1em] uppercase">Sorted by likes · {wall.length} entries</Mono>
+          <Mono className="text-[11px] text-ink-soft tracking-[.1em] uppercase">{wall.length} entries</Mono>
         </div>
         <Rule />
         {loading ? (
