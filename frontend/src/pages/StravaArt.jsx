@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { HeartIcon } from '@heroicons/react/24/outline';
 import { HeartIcon as HeartSolidIcon } from '@heroicons/react/24/solid';
 import { Mono, Rule, Tag } from '../components/ui.jsx';
+import { colSep, rowSep } from '../utils/gridSep.js';
 import { TopBar } from '../components/layout/TopBar.jsx';
 import { BottomNav } from '../components/layout/BottomNav.jsx';
 import { PageFooter } from '../components/layout/PageFooter.jsx';
@@ -549,8 +550,8 @@ export default function StravaArt() {
               <div
                 key={s.id}
                 className={[
-                  i % 4 !== 3 ? 'border-r border-rule-soft' : '',
-                  i < wall.length - (wall.length % 4 || 4) ? 'border-b border-rule-soft' : '',
+                  colSep(i, { base: 2, lg: 4 }),
+                  rowSep(i, wall.length, { base: 2, lg: 4 }),
                 ].join(' ')}
               >
                 <SubmissionTile s={s} onLike={handleToggleLike} />

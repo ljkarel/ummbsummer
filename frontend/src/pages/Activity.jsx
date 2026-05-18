@@ -5,6 +5,7 @@ import { BottomNav } from '../components/layout/BottomNav.jsx';
 import { PageFooter } from '../components/layout/PageFooter.jsx';
 
 import { getMe, getActivities, getSportTypes } from '../lib/api.js';
+import { colSep, rowSep } from '../utils/gridSep.js';
 
 function RouteThumb({ svgPath }) {
   return (
@@ -202,7 +203,7 @@ export default function Activity() {
           { k: 'POINTS',      v: +(me?.total_points?.toFixed(1) ?? 0), sub: `this summer`,                    accentClass: 'text-ink' },
           { k: 'DAY STREAK',  v: me?.streak ?? 0,        sub: 'current streak',                               accentClass: 'text-accent' },
         ].map((s, i) => (
-          <div key={s.k} className={`p-[22px] pb-[26px]${i ? ' border-l border-rule-soft' : ''}`}>
+          <div key={s.k} className={`p-[22px] pb-[26px] ${colSep(i, { base: 2, lg: 4 })} ${rowSep(i, 4, { base: 2, lg: 4 })}`}>
             <Mono className="text-[10px] tracking-[.16em] text-ink-soft">{s.k}</Mono>
             <div className={`font-tight font-extrabold text-[52px] leading-none mt-2 ${s.accentClass}`} style={{ letterSpacing: '-0.04em' }}>
               {typeof s.v === 'number' ? s.v.toLocaleString() : s.v}
@@ -264,8 +265,8 @@ export default function Activity() {
               <div
                 key={a.activity_id}
                 className={[
-                  i % 4 !== 3 ? 'sm:border-r border-rule-soft' : '',
-                  i < filtered.length - (filtered.length % 4 || 4) ? 'border-b border-rule-soft' : '',
+                  colSep(i, { base: 1, sm: 2, lg: 4 }),
+                  rowSep(i, filtered.length, { base: 1, sm: 2, lg: 4 }),
                 ].filter(Boolean).join(' ')}
               >
                 <ActivityCard a={a} />

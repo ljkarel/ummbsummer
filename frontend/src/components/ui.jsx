@@ -70,7 +70,7 @@ export function CountUp({ to, dur = 900, format = (v) => Math.round(v) }) {
 export function ScoringCurve({ current = 0 }) {
   // H increased by 12, PAD_B increased by 12 — plot area (H-PAD_B) is unchanged at 122px
   // PAD_L widened to 50 to give room between the rotated POINTS label and the numeric y-axis labels
-  const W = 540, H = 162, PAD_L = 50, PAD_R = 12, PAD_T = 12, PAD_B = 40;
+  const W = 540, H =280, PAD_L = 50, PAD_R = 12, PAD_T = 12, PAD_B = 40;
   const maxMin = current > 360 ? Math.ceil(current / 60) * 60 : 360;
   // Thin out ticks so labels never get closer than ~35px
   const plotW = W - PAD_L - PAD_R;

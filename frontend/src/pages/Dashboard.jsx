@@ -7,6 +7,7 @@ import { BottomNav } from '../components/layout/BottomNav.jsx';
 import { PageFooter } from '../components/layout/PageFooter.jsx';
 
 import { BASE, getMe, getPeriods, getScoreboard, getActivities } from '../lib/api.js';
+import { colSep, rowSep } from '../utils/gridSep.js';
 
 const CT = 'America/Chicago';
 
@@ -281,7 +282,7 @@ export default function Dashboard() {
           const hoursLeft = s.freeze ? Math.max(0, (new Date(s.freeze) - Date.now()) / 3_600_000) : null;
           const showCountdown = hoursLeft != null && hoursLeft < 24;
           return (
-            <div key={s.k} className={`px-[22px] pt-[22px] pb-[26px]${i ? ' border-l border-rule-soft' : ''}`}>
+            <div key={s.k} className={`px-[22px] pt-[22px] pb-[26px] ${colSep(i, { base: 2, lg: 4 })} ${rowSep(i, 4, { base: 2, lg: 4 })}`}>
               <Mono className="text-[10px] tracking-[.16em] text-ink-soft">{showCountdown ? 'TIME LEFT IN WEEK' : s.k}</Mono>
               <div className={`font-tight font-extrabold text-[52px] leading-none tracking-[-0.04em] mt-2 ${s.accent}`}>
                 {showCountdown
@@ -504,7 +505,7 @@ export default function Dashboard() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
             {activities.slice(0, 4).map((a, i) =>
-              <div key={a.activity_id} className={`px-[18px] pt-4 pb-[18px]${i < 3 ? ' border-r border-rule-soft' : ''}`}>
+              <div key={a.activity_id} className={`px-[18px] pt-4 pb-[18px] ${colSep(i, { base: 1, sm: 2, lg: 4 })} ${rowSep(i, 4, { base: 1, sm: 2, lg: 4 })}`}>
                 <div className="aspect-[10/7] bg-panel-alt mb-3 border border-rule-soft overflow-hidden">
                   <RouteMap svgPath={a.svg_path} />
                 </div>
