@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Mono, Rule, Tag, CountUp, ScoringCurve, RouteMap, TrendCell, TrendHeader } from '../components/ui.jsx';
 import { useFlipAnimation } from '../lib/useFlipAnimation.js';
@@ -157,7 +157,7 @@ export default function Dashboard() {
     );
   }, []);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (sections.length === 0) return;
     setLbAnimated(false);
     const id = setTimeout(() => setLbAnimated(true), 16);
@@ -173,19 +173,64 @@ export default function Dashboard() {
   const valueFor = (s) => {
     if (selectedPeriodIdx < 0) return 0;
     if (lbMode === 'week') return s.periods[selectedPeriodIdx] ?? 0;
-    return s.periods.slice(0, selectedPeriodIdx + 1).reduce((sum, v) => sum + (v ?? 0), 0);
+    return (s.rank_scores ?? []).slice(0, selectedPeriodIdx + 1).reduce((sum, v) => sum + (v ?? 0), 0);
   };
 
-  const sectionsSorted = useMemo(
-    () => [...sections].sort((a, b) => valueFor(b) - valueFor(a)),
-    [sections, lbMode, selectedPeriodIdx]
-  );
+  const sectionsSorted = useMemo(() => {
+    // Preserve backend order for ties so the FLIP animation stays stable
+    const withIdx = sections.map((s, i) => ({ s, i }));
+    withIdx.sort((a, b) => {
+      const diff = valueFor(b.s) - valueFor(a.s);
+      return diff !== 0 ? diff : a.i - b.i;
+    });
+    return withIdx.map(({ s }) => s);
+  }, [sections, lbMode, selectedPeriodIdx]);
+
+  // Compute competition rank (ties share the first position in the group)
+  const getRanksAtPeriod = (periodIdx) => {
+    const sorted = [...sections]
+      .filter(s => s.periods[periodIdx] !== null)
+      .sort((a, b) => (b.periods[periodIdx] ?? 0) - (a.periods[periodIdx] ?? 0));
+    const ranks = {};
+    sorted.forEach((s) => {
+      if (!(s.name in ranks)) {
+        ranks[s.name] = sorted.findIndex(r => r.periods[periodIdx] === s.periods[periodIdx]) + 1;
+      }
+    });
+    return ranks;
+  };
+
+  // Per-section trend for the selected week vs the previous non-null week
+  const weekTrendMap = useMemo(() => {
+    if (selectedPeriodIdx < 0) return {};
+    let prevIdx = -1;
+    for (let i = selectedPeriodIdx - 1; i >= 0; i--) {
+      if (sections.some(s => s.periods[i] !== null)) { prevIdx = i; break; }
+    }
+    if (prevIdx < 0) return {}; // first week — no trend
+    const curr = getRanksAtPeriod(selectedPeriodIdx);
+    const prev = getRanksAtPeriod(prevIdx);
+    const map = {};
+    sections.forEach(s => {
+      if (s.name in curr && s.name in prev) map[s.name] = prev[s.name] - curr[s.name];
+    });
+    return map;
+  }, [sections, selectedPeriodIdx]);
+
 
   const lbListRef = useFlipAnimation(sectionsSorted);
 
   const top3 = sectionsSorted.slice(0, 3);
   const mySection = sections.find((s) => s.is_me);
-  const myRank = sectionsSorted.findIndex((s) => s.is_me) + 1;
+  const myRank = mySection
+    ? sectionsSorted.findIndex((s) => valueFor(s) === valueFor(mySection)) + 1
+    : 0;
+  const livePeriodIdx = useMemo(() => periods.findIndex((p) => p.state === 'live'), [periods]);
+  const liveWeekValueFor = (s) => livePeriodIdx >= 0 ? (s.periods[livePeriodIdx] ?? 0) : 0;
+  const myWeekRank = mySection
+    ? [...sections].sort((a, b) => liveWeekValueFor(b) - liveWeekValueFor(a))
+        .findIndex((s) => liveWeekValueFor(s) === liveWeekValueFor(mySection)) + 1
+    : 0;
   const weekMinutes = me?.week_minutes ?? 0;
 
   const stravaConnected = me?.strava_connected ?? true;
@@ -245,10 +290,10 @@ export default function Dashboard() {
           </h1>
           <div className="flex gap-2.5 mt-4 flex-wrap">
             {mySection && myRank > 0 && (
-              <Tag t={`${mySection.name} · #${myRank} of ${sections.length}`} className="bg-chip text-chip-ink" />
+              <Tag t={`${mySection.name} · #${myWeekRank} this week`} className="bg-chip text-chip-ink" />
             )}
             <Tag t={`Streak · ${me?.streak ?? 0} days`} className="text-ink border border-rule-soft" />
-            <Tag t={`Summer total · ${me?.total_points?.toFixed(1) ?? 0} pts`} className="text-ink border border-rule-soft" />
+            <Tag t={`Summer total · ${me?.total_minutes ?? 0} min`} className="text-ink border border-rule-soft" />
           </div>
         </div>
         <div className="bg-panel px-5 py-[18px] border border-rule-soft">
@@ -258,44 +303,38 @@ export default function Dashboard() {
             </Mono>
             {livePeriod && <Tag t="LIVE" className="bg-brand text-panel" />}
           </div>
-          <div className="font-tight font-bold text-[22px] tracking-[-0.02em]">
-            {livePeriod ? fmtDateRange(livePeriod.start_date, livePeriod.end_date) : '—'}
-          </div>
-          {livePeriod && (
-            <div className="mt-2.5 text-xs text-ink-soft">
-              Snapshot freezes <strong className="text-ink">{fmtFreeze(livePeriod.freeze_datetime)}</strong>. Section averages lock in for the parent competition.
+          <div className="flex items-stretch gap-4">
+            <div className="flex-1">
+              <div className="font-tight font-bold text-[22px] tracking-[-0.02em]">
+                {livePeriod ? fmtDateRange(livePeriod.start_date, livePeriod.end_date) : '—'}
+              </div>
+              {livePeriod && (
+                <div className="mt-2.5 text-xs text-ink-soft">
+                  Snapshot freezes <strong className="text-ink">{fmtFreeze(livePeriod.freeze_datetime)}</strong>. Section averages lock in for the parent competition.
+                </div>
+              )}
             </div>
-          )}
+            {livePeriod && (() => {
+              const hoursLeft = livePeriod.freeze_datetime
+                ? Math.max(0, (new Date(livePeriod.freeze_datetime) - Date.now()) / 3_600_000)
+                : null;
+              const showCountdown = hoursLeft != null && hoursLeft < 24;
+              return (
+                <div className="border-l border-rule-soft pl-4 flex flex-col justify-center">
+                  <Mono className="text-[10px] tracking-[.14em] text-ink-soft">{showCountdown ? 'TIME LEFT' : 'DAYS LEFT'}</Mono>
+                  <div className="font-tight font-extrabold text-[36px] leading-none tracking-[-0.03em] text-accent mt-1">
+                    {showCountdown
+                      ? <Countdown target={livePeriod.freeze_datetime} />
+                      : <CountUp to={Math.ceil(hoursLeft / 24)} />}
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
         </div>
       </div>
 
       <Rule soft />
-
-      {/* Stats 4-col */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 border-b border-rule-soft">
-        {[
-          { k: 'MINUTES THIS WEEK', v: weekMinutes, sub: `${activities.length} recent activities`, accent: 'text-brand' },
-          { k: 'POINTS THIS WEEK', v: me?.week_points ?? 0, sub: `${me?.total_points?.toFixed(1) ?? 0} pts this summer`, accent: 'text-accent-2' },
-          { k: 'SECTION RANK', v: myRank > 0 ? `#${myRank}` : '—', sub: mySection ? `${mySection.name} · ${mySection.members} members` : '—', accent: 'text-ink' },
-          { k: 'DAYS LEFT IN WEEK', freeze: livePeriod?.freeze_datetime ?? null, sub: livePeriod ? `until ${fmtFreeze(livePeriod.freeze_datetime)}` : '—', accent: 'text-accent' },
-        ].map((s, i) => {
-          const hoursLeft = s.freeze ? Math.max(0, (new Date(s.freeze) - Date.now()) / 3_600_000) : null;
-          const showCountdown = hoursLeft != null && hoursLeft < 24;
-          return (
-            <div key={s.k} className={`px-[22px] pt-[22px] pb-[26px] ${colSep(i, { base: 2, lg: 4 })} ${rowSep(i, 4, { base: 2, lg: 4 })}`}>
-              <Mono className="text-[10px] tracking-[.16em] text-ink-soft">{showCountdown ? 'TIME LEFT IN WEEK' : s.k}</Mono>
-              <div className={`font-tight font-extrabold text-[52px] leading-none tracking-[-0.04em] mt-2 ${s.accent}`}>
-                {showCountdown
-                  ? <Countdown target={s.freeze} />
-                  : s.freeze
-                    ? <CountUp to={Math.ceil(hoursLeft / 24)} />
-                    : typeof s.v === 'number' ? <CountUp to={s.v} /> : s.v}
-              </div>
-              <div className="text-xs text-ink-soft mt-1.5">{s.sub}</div>
-            </div>
-          );
-        })}
-      </div>
 
       {/* Main 2-col grid */}
       <div className="grid grid-cols-1 lg:grid-cols-[1.35fr_1fr] gap-7 mt-7">
@@ -312,50 +351,62 @@ export default function Dashboard() {
             </div>
           </div>
           <Rule weight={1.5} />
-          <div className="border-b border-rule-soft" style={{ display: 'grid', gridTemplateColumns: '28px 1.4fr 2.5fr 70px 28px', gap: 12, padding: '10px 0 8px' }}>
+          <div className="border-b border-rule-soft" style={{ display: 'grid', gridTemplateColumns: lbMode === 'week' ? '28px 1.4fr 2.5fr 70px 28px' : '28px 1.4fr 2.5fr 70px', gap: 12, padding: '10px 0 8px' }}>
             <Mono className="text-[9px] text-ink-soft tracking-[.14em]">#</Mono>
             <Mono className="text-[9px] text-ink-soft tracking-[.14em]">SECTION</Mono>
             <Mono className="text-[9px] text-ink-soft tracking-[.14em]">
               {lbMode === 'week'
                 ? `AVG PTS · ${selectedPeriodIdx >= 0 ? `WK ${String(selectedPeriodIdx + 1).padStart(2, '0')}` : '—'}${livePeriod && selectedPeriodId === livePeriod.id ? ' (LIVE)' : ''}`
-                : `Σ WEEKLY AVGS · THRU WK ${selectedPeriodIdx >= 0 ? String(selectedPeriodIdx + 1).padStart(2, '0') : '—'}`}
+                : `RANK PTS · THRU WK ${selectedPeriodIdx >= 0 ? String(selectedPeriodIdx + 1).padStart(2, '0') : '—'}`}
             </Mono>
             <Mono className="text-[9px] text-ink-soft tracking-[.14em] text-right">{lbMode === 'week' ? 'PTS' : 'TOTAL'}</Mono>
-            <TrendHeader />
+            {lbMode === 'week' && <TrendHeader />}
           </div>
-          <div ref={lbListRef}>
-            {sectionsSorted.map((s, i) => {
-              const value = valueFor(s);
-              const max = valueFor(sectionsSorted[0]) || 1;
-              const w = (value / max) * 100;
-              const isTop = i === 0;
-              const trend = s.trend ?? 0;
-              return (
-                <div key={s.name} data-section={s.name}
-                  className={`border-b border-rule-soft items-center${s.is_me ? ' bg-black/[.025]' : ' bg-transparent'}`}
-                  style={{ display: 'grid', gridTemplateColumns: '28px 1.4fr 2.5fr 70px 28px', alignItems: 'center', gap: 12, padding: '12px 0' }}>
-                  <Mono className={`text-[13px]${isTop ? ' text-brand font-bold' : ' text-ink-soft font-medium'}`}>{String(i + 1).padStart(2, '0')}</Mono>
-                  <div className="flex items-center gap-2">
-                    <span className={`text-[15px] tracking-[-0.01em]${s.is_me ? ' font-bold' : ' font-semibold'}`}>{s.name}</span>
-                    {s.is_me && <Tag t="YOU" className="bg-chip text-chip-ink" />}
+          <div className="relative">
+            <div ref={lbListRef} style={{ filter: lbMode === 'season' && periods[selectedPeriodIdx]?.state !== 'done' ? 'blur(3px)' : 'none', transition: 'filter 0.2s' }}>
+              {sectionsSorted.map((s, i) => {
+                const value = valueFor(s);
+                const max = valueFor(sectionsSorted[0]) || 1;
+                const w = (value / max) * 100;
+                // Competition ranking: find first index with same value so tied sections share a rank
+                const rankNum = sectionsSorted.findIndex((r) => valueFor(r) === value) + 1;
+                const isTop = rankNum === 1;
+                const trend = weekTrendMap[s.name] ?? 0;
+                return (
+                  <div key={s.name} data-section={s.name}
+                    className={`border-b border-rule-soft items-center${s.is_me ? ' bg-black/[.025]' : ' bg-transparent'}`}
+                    style={{ display: 'grid', gridTemplateColumns: lbMode === 'week' ? '28px 1.4fr 2.5fr 70px 28px' : '28px 1.4fr 2.5fr 70px', alignItems: 'center', gap: 12, padding: '12px 0' }}>
+                    <Mono className={`text-[13px]${isTop ? ' text-brand font-bold' : ' text-ink-soft font-medium'}`}>{String(rankNum).padStart(2, '0')}</Mono>
+                    <div className="flex items-center gap-2">
+                      <span className={`text-[15px] tracking-[-0.01em]${s.is_me ? ' font-bold' : ' font-semibold'}`}>{s.name}</span>
+                      {s.is_me && <Tag t="YOU" className="bg-chip text-chip-ink" />}
+                    </div>
+                    <div className="relative h-[10px]">
+                      <div className="absolute inset-0 bg-rule-soft" style={{ height: 1, top: '50%' }} />
+                      <div className="absolute left-0 top-0 bottom-0"
+                        style={{
+                          width: lbAnimated ? `${w}%` : '0%',
+                          background: isTop ? 'var(--brand)' : s.is_me ? 'var(--accent-2)' : 'var(--accent)',
+                          opacity: isTop ? 1 : s.is_me ? 0.95 : 0.7,
+                          transition: lbAnimated ? `width 0.55s cubic-bezier(0.2, 0.7, 0.3, 1) ${i * 35}ms` : 'none',
+                        }} />
+                    </div>
+                    <Mono className="text-right text-[15px] font-bold text-ink">
+                      <CountUp key={`${selectedPeriodId}-${lbMode}`} to={value} dur={700} format={(v) => v.toFixed(1)} />
+                    </Mono>
+                    {lbMode === 'week' && <TrendCell trend={trend} />}
                   </div>
-                  <div className="relative h-[10px]">
-                    <div className="absolute inset-0 bg-rule-soft" style={{ height: 1, top: '50%' }} />
-                    <div className="absolute left-0 top-0 bottom-0"
-                      style={{
-                        width: lbAnimated ? `${w}%` : '0%',
-                        background: isTop ? 'var(--brand)' : s.is_me ? 'var(--accent-2)' : 'var(--accent)',
-                        opacity: isTop ? 1 : s.is_me ? 0.95 : 0.7,
-                        transition: lbAnimated ? `width 0.55s cubic-bezier(0.2, 0.7, 0.3, 1) ${i * 35}ms` : 'none',
-                      }} />
-                  </div>
-                  <Mono className="text-right text-[15px] font-bold text-ink">
-                    <CountUp key={`${selectedPeriodId}-${lbMode}`} to={value} dur={700} format={(v) => v.toFixed(1)} />
-                  </Mono>
-                  <TrendCell trend={trend} />
+                );
+              })}
+            </div>
+            {lbMode === 'season' && periods[selectedPeriodIdx]?.state !== 'done' && (
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div className="flex flex-col items-center gap-1.5 bg-panel border border-rule-soft px-5 py-3.5" style={{ boxShadow: '0 2px 16px 0 rgba(0,0,0,0.10)' }}>
+                  <Mono className="text-[11px] font-bold tracking-[.14em] uppercase text-ink">Week in progress</Mono>
+                  <Mono className="text-[10px] text-ink-soft tracking-[.1em] text-center">Overall rankings update when the week closes</Mono>
                 </div>
-              );
-            })}
+              </div>
+            )}
           </div>
         </section>
 
@@ -439,14 +490,26 @@ export default function Dashboard() {
               <Mono className="text-[10px] text-ink-soft tracking-[.1em] uppercase">
                 {lbMode === 'week'
                   ? `AVG PTS · WK ${selectedPeriodIdx >= 0 ? String(selectedPeriodIdx + 1).padStart(2, '0') : '—'}`
-                  : `Σ AVGS · THRU WK ${selectedPeriodIdx >= 0 ? String(selectedPeriodIdx + 1).padStart(2, '0') : '—'}`}
+                  : `RANK PTS · THRU WK ${selectedPeriodIdx >= 0 ? String(selectedPeriodIdx + 1).padStart(2, '0') : '—'}`}
               </Mono>
             </div>
-            <Podium
-              rows={top3}
-              valueFor={valueFor}
-              animated={lbAnimated}
-            />
+            <div className="relative">
+              <div style={{ filter: lbMode === 'season' && periods[selectedPeriodIdx]?.state !== 'done' ? 'blur(3px)' : 'none', transition: 'filter 0.2s' }}>
+                <Podium
+                  rows={top3}
+                  valueFor={valueFor}
+                  animated={lbAnimated}
+                />
+              </div>
+              {lbMode === 'season' && periods[selectedPeriodIdx]?.state !== 'done' && (
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <div className="flex flex-col items-center gap-1.5 bg-panel border border-rule-soft px-5 py-3.5" style={{ boxShadow: '0 2px 16px 0 rgba(0,0,0,0.10)' }}>
+                    <Mono className="text-[11px] font-bold tracking-[.14em] uppercase text-ink">Week in progress</Mono>
+                    <Mono className="text-[10px] text-ink-soft tracking-[.1em] text-center">Overall rankings update when the week closes</Mono>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Scoring curve */}
@@ -474,7 +537,7 @@ export default function Dashboard() {
           </div>
           <Rule weight={1.5} />
           <div className="py-5 flex items-center gap-5">
-            <p className="text-ink-soft text-sm m-0">Turn your workout route into art. Submit a route for this week's challenge.</p>
+            <p className="text-ink-soft text-sm m-0">Turn your activity route into art. Submit a route for this week's challenge.</p>
             <Link to="/art" className="ml-auto px-[22px] py-3 bg-ink text-panel border-none font-tight font-bold text-[13px] tracking-[.06em] uppercase cursor-pointer whitespace-nowrap no-underline">
               View art wall →
             </Link>
@@ -485,7 +548,7 @@ export default function Dashboard() {
       {/* Activity feed */}
       <div className="mt-9">
         <div className="flex items-baseline justify-between mb-2.5">
-          <h2 className="font-tight font-extrabold text-[22px] tracking-[-0.02em] m-0">Your activity</h2>
+          <h2 className="font-tight font-extrabold text-[22px] tracking-[-0.02em] m-0">Your recent activity</h2>
           <div className="flex items-center gap-3">
             <Mono className="text-[11px] text-ink-soft tracking-[.1em] uppercase">Synced via Strava</Mono>
             {stravaConnected ? (

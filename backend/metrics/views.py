@@ -108,30 +108,36 @@ class ScoreboardView(APIView):
         periods = list(competition.periods.order_by('start_date'))
         sections = list(Section.objects.all())
 
-        # Build score per section per period: {section.pk: [score_or_null, ...]}
+        # Build score and rank_score per section per period
         period_scores: dict[int, list[float | None]] = {s.pk: [] for s in sections}
+        period_rank_scores: dict[int, list[float | None]] = {s.pk: [] for s in sections}
 
         for period in periods:
             if period.state == 'future':
                 for s in sections:
                     period_scores[s.pk].append(None)
+                    period_rank_scores[s.pk].append(None)
                 continue
 
             frozen_qs = SectionPeriodScore.objects.filter(period=period).select_related('section')
-            frozen_map = {fs.section_id: fs.score for fs in frozen_qs}
+            frozen_map = {fs.section_id: fs for fs in frozen_qs}
 
             for s in sections:
                 if s.pk in frozen_map:
-                    period_scores[s.pk].append(frozen_map[s.pk])
+                    fs = frozen_map[s.pk]
+                    period_scores[s.pk].append(fs.score)
+                    # Only done periods have rank_scores; live periods don't yet
+                    period_rank_scores[s.pk].append(fs.rank_score if period.state == 'done' else None)
                 else:
                     live = compute_section_score_for_period(s, period)
                     period_scores[s.pk].append(live['score'])
+                    period_rank_scores[s.pk].append(None)
 
-        # Compute season totals and rank trend
-        def season_total(section):
-            return round(sum(v for v in period_scores[section.pk] if v is not None), 2)
+        # Season = sum of rank_scores from done periods only
+        def season_rank_total(section):
+            return round(sum(v for v in period_rank_scores[section.pk] if v is not None), 2)
 
-        # Rank sections for the two most recent non-future periods
+        # Rank sections for the two most recent non-future periods (used for trend)
         non_future_indices = [i for i, p in enumerate(periods) if p.state != 'future']
 
         def get_ranks_at(period_index):
@@ -155,12 +161,29 @@ class ScoreboardView(APIView):
                 'slug': s.slug,
                 'members': s.members.count(),
                 'periods': period_scores[s.pk],
-                'season': season_total(s),
+                'rank_scores': period_rank_scores[s.pk],
+                'season': season_rank_total(s),
                 'trend': trend_map[s.pk],
                 'is_me': s.pk == member.section_id,
             })
 
-        result.sort(key=lambda x: x['season'], reverse=True)
+        # Sort by season (rank-point sum). For equal season, use previous period's
+        # relative order as a tiebreaker to keep the animation stable, then alphabetical.
+        prev_order: dict[str, int] = {}
+        if non_future_indices:
+            prev_idx = non_future_indices[-2] if len(non_future_indices) >= 2 else non_future_indices[-1]
+            prev_scored = sorted(
+                sections,
+                key=lambda s: period_scores[s.pk][prev_idx] or 0,
+                reverse=True,
+            )
+            prev_order = {s.slug: i for i, s in enumerate(prev_scored)}
+
+        result.sort(key=lambda x: (
+            -x['season'],
+            prev_order.get(x['slug'], 9999),
+            x['name'],
+        ))
         return Response(ScoreboardSectionSerializer(result, many=True).data)
 
 

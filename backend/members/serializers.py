@@ -38,6 +38,7 @@ class MemberMeSerializer(serializers.Serializer):
     total_points = serializers.FloatField()
     streak = serializers.IntegerField()
     strava_connected = serializers.BooleanField()
+    strava_scope = serializers.CharField(allow_null=True)
     nickname = serializers.CharField(allow_null=True)
     preferred_email = serializers.EmailField(allow_null=True)
     roster_email = serializers.EmailField()

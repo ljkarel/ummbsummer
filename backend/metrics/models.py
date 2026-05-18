@@ -97,6 +97,12 @@ class SectionPeriodScore(models.Model):
         validators=[MinValueValidator(0)],
         help_text="Sum of per-member computed points for this period.",
     )
+    rank_score = models.FloatField(
+        null=True,
+        blank=True,
+        default=None,
+        help_text="Rank points earned at end of period (average of tied positions).",
+    )
 
     @property
     def score(self):

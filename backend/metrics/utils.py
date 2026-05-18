@@ -61,8 +61,9 @@ def compute_section_score_for_period(section, period: CompetitionPeriod) -> dict
 
 def freeze_section_period_scores(period: CompetitionPeriod) -> list[SectionPeriodScore]:
     """
-    Create frozen SectionPeriodScore records for every section in the database.
-    Idempotent: uses get_or_create, so re-running does not overwrite existing records.
+    Create frozen SectionPeriodScore records for every section in the database,
+    then compute and save rank_score for each. Idempotent: get_or_create preserves
+    existing member-point data; rank_score is always recomputed.
     """
     sections = Section.objects.all()
     results = []
@@ -78,6 +79,21 @@ def freeze_section_period_scores(period: CompetitionPeriod) -> list[SectionPerio
             },
         )
         results.append(obj)
+
+    # Assign rank_score using average-of-tied-positions (standard competition scoring)
+    results.sort(key=lambda obj: obj.score, reverse=True)
+    n = len(results)
+    i = 0
+    while i < n:
+        j = i
+        while j < n and results[j].score == results[i].score:
+            j += 1
+        avg = sum(n - k for k in range(i, j)) / (j - i)
+        for obj in results[i:j]:
+            obj.rank_score = avg
+            obj.save(update_fields=['rank_score'])
+        i = j
+
     return results
 
 

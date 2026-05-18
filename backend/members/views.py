@@ -110,6 +110,7 @@ class MemberMeView(APIView):
             'total_points': total_points,
             'streak': compute_member_streak(member),
             'strava_connected': hasattr(member, 'strava_auth'),
+            'strava_scope': member.strava_auth.scope if hasattr(member, 'strava_auth') else None,
             'nickname': getattr(member.preferences, 'nickname', None),
             'preferred_email': getattr(member.preferences, 'preferred_email', None),
             'roster_email': member.email,

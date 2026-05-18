@@ -39,18 +39,18 @@ SECTIONS = [
 
 PERIOD_DATES = [
     # (name, start_date, end_date, freeze_datetime_utc)
-    ("Period 1",  date(2026, 4, 27), date(2026, 5,  3), datetime(2026,  5,  4, 4, 59, tzinfo=timezone.utc)),
-    ("Period 2",  date(2026, 5,  4), date(2026, 5, 10), datetime(2026,  5, 11, 4, 59, tzinfo=timezone.utc)),
-    ("Period 3",  date(2026, 5, 11), date(2026, 5, 17), datetime(2026,  5, 18, 4, 59, tzinfo=timezone.utc)),
-    ("Period 4",  date(2026, 5, 18), date(2026, 5, 24), datetime(2026,  5, 25, 4, 59, tzinfo=timezone.utc)),
-    ("Period 5",  date(2026, 5, 25), date(2026, 5, 31), datetime(2026,  6,  1, 4, 59, tzinfo=timezone.utc)),
-    ("Period 6",  date(2026, 6,  1), date(2026, 6,  7), datetime(2026,  6,  8, 4, 59, tzinfo=timezone.utc)),
-    ("Period 7",  date(2026, 6,  8), date(2026, 6, 14), datetime(2026,  6, 15, 4, 59, tzinfo=timezone.utc)),
-    ("Period 8",  date(2026, 6, 15), date(2026, 6, 21), datetime(2026,  6, 22, 4, 59, tzinfo=timezone.utc)),
-    ("Period 9",  date(2026, 6, 22), date(2026, 6, 28), datetime(2026,  6, 29, 4, 59, tzinfo=timezone.utc)),
-    ("Period 10", date(2026, 6, 29), date(2026, 7,  5), datetime(2026,  7,  6, 4, 59, tzinfo=timezone.utc)),
-    ("Period 11", date(2026, 7,  6), date(2026, 7, 12), datetime(2026,  7, 13, 4, 59, tzinfo=timezone.utc)),
-    ("Period 12", date(2026, 7, 13), date(2026, 7, 19), datetime(2026,  7, 20, 4, 59, tzinfo=timezone.utc)),
+    ("Period 1",  date(2026, 5,  4), date(2026, 5, 10), datetime(2026,  5, 11, 4, 59, tzinfo=timezone.utc)),
+    ("Period 2",  date(2026, 5, 11), date(2026, 5, 17), datetime(2026,  5, 18, 4, 59, tzinfo=timezone.utc)),
+    ("Period 3",  date(2026, 5, 18), date(2026, 5, 24), datetime(2026,  5, 25, 4, 59, tzinfo=timezone.utc)),
+    ("Period 4",  date(2026, 5, 25), date(2026, 5, 31), datetime(2026,  6,  1, 4, 59, tzinfo=timezone.utc)),
+    ("Period 5",  date(2026, 6,  1), date(2026, 6,  7), datetime(2026,  6,  8, 4, 59, tzinfo=timezone.utc)),
+    ("Period 6",  date(2026, 6,  8), date(2026, 6, 14), datetime(2026,  6, 15, 4, 59, tzinfo=timezone.utc)),
+    ("Period 7",  date(2026, 6, 15), date(2026, 6, 21), datetime(2026,  6, 22, 4, 59, tzinfo=timezone.utc)),
+    ("Period 8",  date(2026, 6, 22), date(2026, 6, 28), datetime(2026,  6, 29, 4, 59, tzinfo=timezone.utc)),
+    ("Period 9",  date(2026, 6, 29), date(2026, 7,  5), datetime(2026,  7,  6, 4, 59, tzinfo=timezone.utc)),
+    ("Period 10", date(2026, 7,  6), date(2026, 7, 12), datetime(2026,  7, 13, 4, 59, tzinfo=timezone.utc)),
+    ("Period 11", date(2026, 7, 13), date(2026, 7, 19), datetime(2026,  7, 20, 4, 59, tzinfo=timezone.utc)),
+    ("Period 12", date(2026, 7, 20), date(2026, 7, 26), datetime(2026,  7, 27, 4, 59, tzinfo=timezone.utc)),
 ]
 
 ART_THEMES = {
@@ -180,7 +180,7 @@ class Command(BaseCommand):
         self.stdout.write("Seeding competition and periods...")
         competition, _ = Competition.objects.get_or_create(
             name="Summer '26",
-            defaults={"start_date": date(2026, 4, 27), "end_date": date(2026, 7, 19)},
+            defaults={"start_date": date(2026, 5, 4), "end_date": date(2026, 7, 26)},
         )
 
         periods = {}

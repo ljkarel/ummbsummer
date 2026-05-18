@@ -127,11 +127,22 @@ export function SettingsDrawer({ open, onClose }) {
                   <span className="font-bold text-[13px]">Connected</span>
                 </span>
               </div>
-              <Mono className="block text-[10px] text-ink-soft tracking-[.14em] uppercase mt-1.5 mb-1.5">Scopes</Mono>
-              <ul className="m-0 p-0 list-none text-[12.5px] text-ink leading-[1.7]">
-                <li><span className="text-good font-bold mr-2 font-mono">✓</span>activity:read_all</li>
-                <li className="text-ink-soft"><span className="text-brand font-bold mr-2 font-mono">✗</span>activity:write</li>
-              </ul>
+              {me?.strava_scope?.includes('activity:read_all') ? (
+                <p className="m-0 text-[12.5px] text-ink leading-[1.6]">
+                  <span className="text-good font-bold font-mono mr-2">✓</span>
+                  Can sync all activities, including private ones
+                </p>
+              ) : (
+                <>
+                  <p className="m-0 text-[12.5px] text-ink leading-[1.6]">
+                    <span className="text-good font-bold font-mono mr-2">✓</span>
+                    Can sync public activities only
+                  </p>
+                  <p className="m-0 mt-1 text-[12px] text-ink-soft leading-[1.5]">
+                    Private activities won't be counted. Reconnect to grant full access.
+                  </p>
+                </>
+              )}
             </div>
           ) : (
             <div className="px-3.5 py-3 bg-panel-alt border border-rule-soft text-[13px] text-ink-soft">

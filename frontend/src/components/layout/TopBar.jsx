@@ -38,7 +38,7 @@ export function TopBar({ stravaConnected = true }) {
       >
         <div className="px-9 pt-3.5 pb-3.5 flex items-center justify-between gap-4">
           <div className="relative flex items-center">
-            <img src="/logo_title.svg" alt="Logo" className="absolute h-12 w-12 top-1/2" style={{ zIndex: 0, transform: 'translateY(calc(-50% - 2px)) translateX(3px)' }} />
+            <img src="/logo_title.svg" alt="Logo" className="absolute h-12 w-12 top-1/2" style={{ zIndex: 0, transform: 'translateY(calc(-50% - 1.5px)) translateX(3px)' }} />
             <div className="font-tight font-extrabold left-5 text-[22px] tracking-[-0.02em] relative" style={{ zIndex: 1 }}>
               UMMB<span className="text-brand">·</span>SUMMER
               <Mono className="font-medium text-sm ml-2 text-ink-soft">{'\'26'}</Mono>

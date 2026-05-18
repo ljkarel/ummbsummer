@@ -39,6 +39,7 @@ class ScoreboardSectionSerializer(serializers.Serializer):
     slug = serializers.CharField()
     members = serializers.IntegerField()
     periods = serializers.ListField(child=serializers.FloatField(allow_null=True))
+    rank_scores = serializers.ListField(child=serializers.FloatField(allow_null=True))
     season = serializers.FloatField()
     trend = serializers.IntegerField(allow_null=True)
     is_me = serializers.BooleanField()

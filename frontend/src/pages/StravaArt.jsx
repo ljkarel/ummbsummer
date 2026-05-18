@@ -410,7 +410,7 @@ export default function StravaArt() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-6">
           <section>
             <div className="flex justify-between items-baseline mb-[10px]">
-              <h2 className="font-tight font-extrabold text-[22px] tracking-[-0.02em] m-0">Pick one activity</h2>
+              <h2 className="font-tight font-extrabold text-[22px] tracking-[-0.02em] m-0">Pick an activity</h2>
               <Mono className="text-[11px] text-ink-soft tracking-[.1em] uppercase">{periodActivities.length} from {dates}</Mono>
             </div>
             <Rule />

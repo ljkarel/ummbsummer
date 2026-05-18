@@ -70,7 +70,7 @@ export function OnboardingStrava() {
             <div className="mt-5 px-4 py-3.5 border border-brand max-w-[480px]">
               <Mono className="text-[11px] text-brand tracking-[.12em] uppercase block mb-1">Permission required</Mono>
               <p className="text-sm text-ink-soft m-0 leading-relaxed">
-                Activity access is required. Please reconnect and grant at least the <strong className="text-ink">activity:read</strong> permission when prompted by Strava.
+                Activity access is required. Please reconnect and allow access to your Strava activities when prompted.
               </p>
             </div>
           )}
