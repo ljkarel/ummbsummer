@@ -36,6 +36,19 @@ class MemberActivitiesView(ListAPIView):
         return qs
 
 
+class MemberSportTypesView(APIView):
+    def get(self, request):
+        values = (
+            Activity.objects.filter(member=request.user.member)
+            .values_list('sport_type', flat=True)
+            .distinct()
+            .order_by('sport_type')
+        )
+        choices = dict(Activity._meta.get_field('sport_type').choices)
+        sports = [{'value': v, 'label': choices.get(v, v)} for v in values]
+        return JsonResponse({'sports': sports})
+
+
 class ActivityMapView(APIView):
     def get(self, request, pk):
         activity = get_object_or_404(Activity, pk=pk)

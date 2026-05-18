@@ -52,6 +52,7 @@ export const getActivities = (params = {}) => {
   const q = qs.toString();
   return apiFetch(`/api/activities/${q ? `?${q}` : ''}`);
 };
+export const getSportTypes = () => apiFetch('/api/activities/sports/');
 
 // Roster
 export const getRoster = (params = {}) => {

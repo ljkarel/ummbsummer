@@ -4,7 +4,7 @@ import { TopBar } from '../components/layout/TopBar.jsx';
 import { BottomNav } from '../components/layout/BottomNav.jsx';
 import { PageFooter } from '../components/layout/PageFooter.jsx';
 import { SettingsDrawer } from '../components/SettingsDrawer.jsx';
-import { getMe, getActivities } from '../lib/api.js';
+import { getMe, getActivities, getSportTypes } from '../lib/api.js';
 
 function RouteThumb({ svgPath }) {
   return (
@@ -75,7 +75,7 @@ function Heatmap({ activities }) {
                   style={{ aspectRatio: '2.4 / 1', background: color(mins), border: '1px solid var(--rule-soft)' }}
                   title={`Wk ${w + 1}, ${dl} · ${mins} min`}
                 >
-                  {mins >= 60 && (
+                  {mins > 0 && (
                     <Mono className="absolute inset-0 grid place-items-center text-[9px] font-bold text-panel">{mins}</Mono>
                   )}
                 </div>
@@ -127,8 +127,8 @@ export default function Activity() {
   const [sport, setSport] = useState('All');
   const [sort, setSort] = useState('Recent');
 
-  const sports = ['All', 'Run', 'Ride', 'Walk', 'Swim', 'WeightTraining'];
-  const sorts = ['Recent', 'Points', 'Distance'];
+  const [sports, setSports] = useState([{ value: 'All', label: 'All' }]);
+  const sorts = ['Recent', 'Points', 'Distance', 'Minutes'];
 
   async function fetchActivities(sportFilter) {
     setLoading(true);
@@ -144,11 +144,12 @@ export default function Activity() {
   }
 
   useEffect(() => {
-    Promise.all([getMe(), getActivities()]).then(([meData, actData]) => {
+    Promise.all([getMe(), getActivities(), getSportTypes()]).then(([meData, actData, sportsData]) => {
       setMe(meData);
       setActivities(actData.results ?? []);
       setTotalCount(actData.count ?? 0);
       setNextUrl(actData.next ?? null);
+      setSports([{ value: 'All', label: 'All' }, ...(sportsData.sports ?? [])]);
     });
   }, []);
 
@@ -175,6 +176,7 @@ export default function Activity() {
     const sorted = [...activities];
     if (sort === 'Points') sorted.sort((a, b) => (b.points ?? 0) - (a.points ?? 0));
     else if (sort === 'Distance') sorted.sort((a, b) => (b.distance ?? 0) - (a.distance ?? 0));
+    else if (sort === 'Minutes') sorted.sort((a, b) => (b.minutes ?? 0) - (a.minutes ?? 0));
     return sorted;
   }, [activities, sort]);
 
@@ -225,11 +227,11 @@ export default function Activity() {
             <div className="flex border border-rule-soft">
               {sports.map((s) => (
                 <button
-                  key={s}
-                  onClick={() => setSport(s)}
-                  className={`px-[10px] py-[5px] font-mono text-[10px] tracking-[.12em] uppercase cursor-pointer border-0${s !== sports[sports.length - 1] ? ' border-r border-rule-soft' : ''}${sport === s ? ' bg-ink text-panel font-bold' : ' bg-transparent text-ink-soft font-medium'}`}
+                  key={s.value}
+                  onClick={() => setSport(s.value)}
+                  className={`px-[10px] py-[5px] font-mono text-[10px] tracking-[.12em] uppercase cursor-pointer border-0${s !== sports[sports.length - 1] ? ' border-r border-rule-soft' : ''}${sport === s.value ? ' bg-ink text-panel font-bold' : ' bg-transparent text-ink-soft font-medium'}`}
                 >
-                  {s === 'WeightTraining' ? 'Lift' : s}
+                  {s.label}
                 </button>
               ))}
             </div>

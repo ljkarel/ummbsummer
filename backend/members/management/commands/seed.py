@@ -247,15 +247,15 @@ class Command(BaseCommand):
             dev_member.user = admin_user
             dev_member.save()
 
-        # if not hasattr(dev_member, "strava_auth"):
-        #     StravaAuth.objects.create(
-        #         strava_id=9999999999,
-        #         member=dev_member,
-        #         access_token="fake_dev_token",
-        #         refresh_token="fake_dev_refresh",
-        #         token_expires=datetime(2030, 1, 1, tzinfo=timezone.utc),
-        #         scope="activity:read_all",
-        #     )
+        if not hasattr(dev_member, "strava_auth"):
+            StravaAuth.objects.create(
+                strava_id=9999999999,
+                member=dev_member,
+                access_token="fake_dev_token",
+                refresh_token="fake_dev_refresh",
+                token_expires=datetime(2030, 1, 1, tzinfo=timezone.utc),
+                scope="activity:read_all",
+            )
         self.stdout.write("  Dev user (dev@umn.edu → admin) ready.")
 
         self.stdout.write("Assigning registration statuses...")

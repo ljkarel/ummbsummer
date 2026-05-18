@@ -63,7 +63,7 @@ export function OnboardingStrava() {
             Connect <span className="text-brand">Strava</span> to sync your workouts.
           </h1>
           <p className="text-base leading-[1.55] text-ink-soft mt-[18px] max-w-[480px]">
-            We use Strava to count your minutes. New activities sync automatically via webhook — no manual logging.
+            We use Strava to count your minutes. New activities sync automatically.
           </p>
 
           {scopeError && (
