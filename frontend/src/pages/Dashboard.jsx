@@ -234,6 +234,78 @@ export default function Dashboard() {
         </section>
 
         <section className="flex flex-col gap-6">
+
+          {/* Timeline */}
+          <div>
+            <div className="flex justify-between items-baseline mb-4">
+              <h3 className="font-tight font-extrabold text-lg m-0 tracking-[-0.01em]">Competition timeline</h3>
+              <Mono className="text-[11px] text-ink-soft">Summer '26 · {periods.length} weeks</Mono>
+            </div>
+
+            {/* Slider track + thumb */}
+            <div className="relative h-[18px] flex items-center">
+              {/* Segmented track */}
+              <div className="absolute inset-x-0 flex gap-px h-1.5">
+                {periods.map((p) => (
+                  <div
+                    key={p.id}
+                    className={`flex-1 ${p.state === 'live' ? 'bg-brand' : p.state === 'done' ? 'bg-ink-soft' : 'bg-rule-soft'}`}
+                  />
+                ))}
+              </div>
+
+              {/* Sliding thumb */}
+              {selectedPeriodIdx >= 0 && (
+                <div
+                  className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 w-[18px] h-[18px] rounded-full bg-panel border-2 border-brand shadow pointer-events-none z-10 transition-[left] duration-150"
+                  style={{ left: `${((selectedPeriodIdx + 0.5) / periods.length) * 100}%` }}
+                />
+              )}
+
+              {/* Click zones */}
+              <div className="absolute inset-0 flex">
+                {periods.map((p) => {
+                  const isFuture = p.state === 'future';
+                  return (
+                    <button
+                      key={p.id}
+                      onClick={() => !isFuture && setSelectedPeriodId(p.id)}
+                      disabled={isFuture}
+                      className={`flex-1 outline-none ${isFuture ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Week labels */}
+            <div className="flex mt-2">
+              {periods.map((p, idx) => {
+                const isSel = p.id === selectedPeriodId;
+                const isFuture = p.state === 'future';
+                return (
+                  <button
+                    key={p.id}
+                    onClick={() => !isFuture && setSelectedPeriodId(p.id)}
+                    disabled={isFuture}
+                    className={`flex-1 flex justify-center outline-none py-0.5 ${isFuture ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+                  >
+                    <Mono className={`text-[9px] tracking-[.1em] transition-colors duration-100 ${isSel ? 'text-brand font-bold' : isFuture ? 'text-ink-soft opacity-30' : 'text-ink-soft'}`}>
+                      {String(idx + 1).padStart(2, '0')}
+                    </Mono>
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="flex justify-between mt-2">
+              <Mono className="text-[10px] text-ink-soft tracking-[.1em] uppercase">Click a week to filter the leaderboard</Mono>
+              <Mono className="text-[10px] text-ink-soft tracking-[.1em] uppercase">
+                Viewing · WK {selectedPeriodIdx >= 0 ? String(selectedPeriodIdx + 1).padStart(2, '0') : '—'}
+              </Mono>
+            </div>
+          </div>
+
           {/* Scoring curve */}
           <div className="bg-panel px-5 pt-[18px] pb-[14px] border border-rule-soft">
             <div className="flex justify-between items-baseline mb-2">
@@ -244,38 +316,6 @@ export default function Dashboard() {
               <Mono className="text-[11px] text-brand font-bold">YOU · {weekMinutes} MIN</Mono>
             </div>
             <ScoringCurve current={weekMinutes} />
-          </div>
-
-          {/* Timeline */}
-          <div>
-            <div className="flex justify-between items-baseline mb-2.5">
-              <h3 className="font-tight font-extrabold text-lg m-0 tracking-[-0.01em]">Competition timeline</h3>
-              <Mono className="text-[11px] text-ink-soft">Summer '26 · {periods.length} weeks</Mono>
-            </div>
-            <div className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${periods.length || 8}, 1fr)` }}>
-              {periods.map((p, idx) => {
-                const isLive = p.state === 'live';
-                const isDone = p.state === 'done';
-                const isFuture = p.state === 'future';
-                const isSel = p.id === selectedPeriodId;
-                const clickable = !isFuture;
-                return (
-                  <button key={p.id} onClick={() => clickable && setSelectedPeriodId(p.id)} disabled={!clickable}
-                    className={`text-center flex flex-col justify-center items-center gap-1 font-sans outline-none transition-[border-color] duration-[.15s] min-h-[56px] py-3 pb-2.5${isLive ? ' bg-brand text-panel' : isDone ? ' bg-panel-alt text-ink' : ' bg-transparent text-ink'}${isSel ? ' border-2 border-brand' : isFuture ? ' border border-rule-soft' : ' border border-transparent'}${isFuture ? ' opacity-50' : ''}${clickable ? ' cursor-pointer' : ' cursor-not-allowed'}`}>
-                    <Mono className="text-[9px] opacity-70 tracking-[.14em]">WK {String(idx + 1).padStart(2, '0')}</Mono>
-                    {p.you != null
-                      ? <Mono className="text-sm font-bold tracking-[-0.01em]">{p.you.toFixed(1)}</Mono>
-                      : <Mono className="text-sm font-medium opacity-50">—</Mono>}
-                  </button>
-                );
-              })}
-            </div>
-            <div className="flex justify-between mt-2">
-              <Mono className="text-[10px] text-ink-soft tracking-[.1em] uppercase">Click a week to filter the leaderboard</Mono>
-              <Mono className="text-[10px] text-ink-soft tracking-[.1em] uppercase">
-                Viewing · WK {selectedPeriodIdx >= 0 ? String(selectedPeriodIdx + 1).padStart(2, '0') : '—'}
-              </Mono>
-            </div>
           </div>
         </section>
       </div>

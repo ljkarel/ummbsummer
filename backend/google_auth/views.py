@@ -78,11 +78,10 @@ class GoogleAuthInitView(APIView):
 
     def get(self, request):
         # If in development mode, bypass Google authorization and just log in as the admin account
-        if settings.DEBUG:
-            user = User.objects.get(username='admin')
-            login(request, user)
-            return redirect(settings.FRONTEND_URL)
-
+        # if settings.DEBUG:
+        #     user = User.objects.get(username='admin')
+        #     login(request, user)
+        #     return redirect(settings.FRONTEND_URL)
         # Create an OAuth 2.0 flow using the client configuration and desired scopes
         flow = build_flow()
 
@@ -91,6 +90,7 @@ class GoogleAuthInitView(APIView):
 
         auth_url_kwargs = {
             'include_granted_scopes': 'true',
+            'prompt': 'select_account',
             'hd': settings.GOOGLE_AUTH['HD'] if not bypass_hd else None  # Restrict login to users in specified Google domain (e.g. 'umn.edu')
         }
 
@@ -164,7 +164,7 @@ class GoogleAuthCallbackView(APIView):
                 else:
                     return redirect_to_login('non_admin_user')
             except User.DoesNotExist:
-                return redirect_to_login('nonexistant_member')
+                return redirect(f'{settings.FRONTEND_URL}/not-on-roster')
 
         # Find the user associated with the member
         user = member.user

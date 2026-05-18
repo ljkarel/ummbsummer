@@ -62,6 +62,13 @@ export const getRoster = (params = {}) => {
   return apiFetch(`/api/members/roster/${q ? `?${q}` : ''}`);
 };
 
+// Sections (public)
+export const getSections = () => apiFetch('/api/members/sections/');
+
+// Roster requests (public)
+export const submitRosterRequest = (body) =>
+  apiFetch('/api/members/roster-requests/', { method: 'POST', body });
+
 // Art
 export const getArtWall = (periodId) => apiFetch(`/api/art/wall/?period=${periodId}`);
 export const getMyArtSub = (periodId) =>

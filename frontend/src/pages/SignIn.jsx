@@ -85,7 +85,16 @@ export default function SignIn() {
           </button>
 
           <Mono className="block mt-3.5 text-[11px] text-ink-soft tracking-[.06em] max-w-[520px] leading-relaxed">
-            Use your <strong className="text-ink">@umn.edu</strong> account. Only members on the UMMB roster can enter.
+            Use your <strong className="text-ink">@umn.edu</strong> account. Only members on the UMMB roster can enter.{' '}
+            <span
+              role="button"
+              tabIndex={0}
+              onClick={() => { window.location.href = `${BASE}/api/auth/init/?bypass_hd=true`; }}
+              onKeyDown={(e) => e.key === 'Enter' && (window.location.href = `${BASE}/api/auth/init/?bypass_hd=true`)}
+              className="text-ink-soft underline underline-offset-2 decoration-rule-soft cursor-pointer opacity-50 hover:opacity-100 transition-opacity"
+            >
+              Don't have a UMN email?
+            </span>
           </Mono>
 
           <div className="mt-9 flex gap-7 items-center flex-wrap">

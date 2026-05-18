@@ -1,12 +1,28 @@
 from rest_framework import status
+from rest_framework.generics import CreateAPIView, ListAPIView
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from metrics.utils import compute_member_points_for_period, get_current_period
 
-from .models import Member, Section
-from .serializers import MemberMeSerializer, RosterMemberSerializer, SectionSerializer
+from .models import Member, RosterRequest, Section
+from .serializers import MemberMeSerializer, RosterMemberSerializer, RosterRequestSerializer, SectionNameSerializer, SectionSerializer
 from .utils import compute_member_streak, get_active_competition
+
+
+class SectionListView(ListAPIView):
+    """Public endpoint returning section names for the roster request form."""
+    authentication_classes = []
+    permission_classes = []
+    queryset = Section.objects.all().order_by('name')
+    serializer_class = SectionNameSerializer
+
+
+class RosterRequestCreateView(CreateAPIView):
+    """Public endpoint for submitting a roster access request."""
+    authentication_classes = []
+    permission_classes = []
+    serializer_class = RosterRequestSerializer
 
 
 class SectionRegistrationView(APIView):
