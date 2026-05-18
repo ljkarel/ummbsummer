@@ -187,7 +187,7 @@ export default function Activity() {
       <SettingsDrawer open={settingsOpen} onClose={() => setSettingsOpen(false)} />
 
       <div className="py-[26px] pb-[22px]">
-        <Mono className="text-[11px] text-ink-soft tracking-[.18em] uppercase">Your activity — season to date</Mono>
+        <Mono className="text-[11px] text-ink-soft tracking-[.18em] uppercase">Your activity — summer to date</Mono>
         <h1 className="font-tight font-extrabold text-[56px] leading-none mt-2 mb-0 [text-wrap:balance]" style={{ lineHeight: 1.02, letterSpacing: '-0.035em' }}>
           <Mono className="font-tight font-extrabold text-brand" style={{ fontSize: 'inherit', letterSpacing: '-0.035em' }}>{totalCount}</Mono> activities · <Mono className="font-tight font-extrabold" style={{ fontSize: 'inherit', letterSpacing: '-0.035em' }}>{(me?.total_minutes ?? 0).toLocaleString()}</Mono> minutes logged.
         </h1>
@@ -197,9 +197,9 @@ export default function Activity() {
 
       <div className="grid grid-cols-2 lg:grid-cols-4 border-b border-rule-soft">
         {[
-          { k: 'ACTIVITIES',  v: totalCount,             sub: 'this season',                                  accentClass: 'text-brand' },
+          { k: 'ACTIVITIES',  v: totalCount,             sub: 'this summer',                                  accentClass: 'text-brand' },
           { k: 'MINUTES',     v: me?.total_minutes ?? 0, sub: 'logged via Strava',                            accentClass: 'text-accent-2' },
-          { k: 'POINTS',      v: +(me?.total_points?.toFixed(1) ?? 0), sub: `this season`,                    accentClass: 'text-ink' },
+          { k: 'POINTS',      v: +(me?.total_points?.toFixed(1) ?? 0), sub: `this summer`,                    accentClass: 'text-ink' },
           { k: 'DAY STREAK',  v: me?.streak ?? 0,        sub: 'current streak',                               accentClass: 'text-accent' },
         ].map((s, i) => (
           <div key={s.k} className={`p-[22px] pb-[26px]${i ? ' border-l border-rule-soft' : ''}`}>

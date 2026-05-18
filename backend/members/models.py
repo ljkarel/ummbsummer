@@ -170,30 +170,6 @@ class MemberPreferences(models.Model):
         return f"{self.member.roster_name}'s preferences"
 
 
-YEAR_CHOICES = [(1, 'Rookie'), (2, '2nd Year'), (3, '3rd Year'), (4, '4th Year'), (5, '5th Year+')]
-
-
-class RosterRequest(models.Model):
-    """Submitted by prospective members who aren't found on the roster after Google OAuth."""
-
-    first_name = models.CharField(max_length=100)
-    last_name = models.CharField(max_length=100)
-    email = models.EmailField()
-    section = models.CharField(max_length=100)
-    year = models.PositiveSmallIntegerField(choices=YEAR_CHOICES)
-    notes = models.TextField(blank=True)
-    submitted_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        verbose_name = "Roster Request"
-        verbose_name_plural = "Roster Requests"
-        ordering = ['-submitted_at']
-        db_table = 'roster_request'
-
-    def __str__(self):
-        return f"{self.first_name} {self.last_name} ({self.email})"
-
-
 class StravaAuth(models.Model):
     """Represents Strava access token information for a member, if they have authenticated with Strava."""
 

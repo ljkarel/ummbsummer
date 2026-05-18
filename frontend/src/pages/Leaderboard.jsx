@@ -141,7 +141,7 @@ export default function Leaderboard() {
         </div>
         <div className="flex justify-end sm:justify-start">
           <div className="flex items-center gap-1.5 p-[3px] border border-rule-soft">
-            {[{ v: 'week', label: 'Weekly' }, { v: 'season', label: 'Season Total' }].map((o) => (
+            {[{ v: 'week', label: 'Weekly' }, { v: 'season', label: 'Summer Total' }].map((o) => (
               <button
                 key={o.v}
                 onClick={() => setMode(o.v)}

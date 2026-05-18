@@ -4,6 +4,7 @@ import Activity from './pages/Activity.jsx';
 import Leaderboard from './pages/Leaderboard.jsx';
 import StravaArt from './pages/StravaArt.jsx';
 import Roster from './pages/Roster.jsx';
+import Feedback from './pages/Feedback.jsx';
 import SignIn from './pages/SignIn.jsx';
 import { OnboardingStrava, OnboardingProfile, OnboardingDone } from './pages/Onboarding.jsx';
 import NotFound from './pages/NotFound.jsx';
@@ -56,6 +57,7 @@ export const router = createBrowserRouter([
           { path: '/onboarding',         element: <OnboardingStrava /> },
           { path: '/onboarding/profile', element: <OnboardingProfile /> },
           { path: '/onboarding/done',    element: <OnboardingDone /> },
+          { path: '/feedback',           element: <Feedback /> },
         ],
       },
     ],

@@ -1,13 +1,13 @@
 from rest_framework import status
-from rest_framework.generics import CreateAPIView, ListAPIView
+from rest_framework.generics import ListAPIView
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from metrics.utils import compute_member_points_for_period, get_current_period
 
-from .models import Member, RosterRequest, Section
-from .serializers import MemberMeSerializer, RosterMemberSerializer, RosterRequestSerializer, SectionNameSerializer, SectionSerializer
-from .utils import compute_member_streak, get_active_competition
+from .models import Member, Section
+from .serializers import MemberMeSerializer, RosterMemberSerializer, SectionNameSerializer, SectionSerializer
+from .utils import compute_member_streak, get_active_competition, notify_admins
 
 
 class SectionListView(ListAPIView):
@@ -18,11 +18,51 @@ class SectionListView(ListAPIView):
     serializer_class = SectionNameSerializer
 
 
-class RosterRequestCreateView(CreateAPIView):
-    """Public endpoint for submitting a roster access request."""
+UMN_EMAIL_SUFFIX = '@umn.edu'
+YEAR_LABELS = {1: 'Rookie', 2: '2nd Year', 3: '3rd Year', 4: '4th Year', 5: '5th Year+'}
+
+
+class SubmitRosterRequestView(APIView):
     authentication_classes = []
     permission_classes = []
-    serializer_class = RosterRequestSerializer
+
+    def post(self, request):
+        first_name = request.data.get('first_name', '').strip()
+        last_name = request.data.get('last_name', '').strip()
+        email = request.data.get('email', '').strip()
+        section = request.data.get('section', '').strip()
+        year = request.data.get('year')
+        notes = request.data.get('notes', '').strip()
+
+        errors = {}
+        if not first_name:
+            errors['first_name'] = 'Required.'
+        if not last_name:
+            errors['last_name'] = 'Required.'
+        if not email.lower().endswith(UMN_EMAIL_SUFFIX):
+            errors['email'] = 'Must be a @umn.edu email address.'
+        if not section:
+            errors['section'] = 'Required.'
+        if not year:
+            errors['year'] = 'Required.'
+        if errors:
+            return Response(errors, status=status.HTTP_400_BAD_REQUEST)
+
+        year_label = YEAR_LABELS.get(int(year), str(year))
+        body = (
+            f"Name: {first_name} {last_name}\n"
+            f"Email: {email}\n"
+            f"Section: {section}\n"
+            f"Year: {year_label}\n"
+            f"Notes: {notes or '—'}"
+        )
+
+        try:
+            notify_admins(f'[Roster Request] {first_name} {last_name}', body)
+        except Exception:
+            return Response({'error': 'Failed to send email.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class SectionRegistrationView(APIView):
@@ -109,3 +149,33 @@ class RosterView(APIView):
 
         serializer = RosterMemberSerializer(qs, many=True, context={'request': request})
         return Response(serializer.data)
+
+
+FEEDBACK_CATEGORIES = {'Bug', 'Feature Request', 'Question', 'Other'}
+
+
+class SubmitFeedbackView(APIView):
+    def post(self, request):
+        category = request.data.get('category', '').strip()
+        description = request.data.get('description', '').strip()
+        reporter_email = request.data.get('reporterEmail', '').strip()
+
+        if not category or category not in FEEDBACK_CATEGORIES:
+            return Response({'error': 'Invalid category.'}, status=status.HTTP_400_BAD_REQUEST)
+        if not description:
+            return Response({'error': 'Description is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        member_name = getattr(getattr(request.user, 'member', None), 'display_name', request.user.email)
+
+        body = (
+            f"Category: {category}\n"
+            f"From: {member_name} <{reporter_email or request.user.email}>\n\n"
+            f"{description}"
+        )
+
+        try:
+            notify_admins(f'[Feedback] {category}', body)
+        except Exception:
+            return Response({'error': 'Failed to send email.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        return Response(status=status.HTTP_204_NO_CONTENT)

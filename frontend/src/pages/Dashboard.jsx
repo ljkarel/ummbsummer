@@ -169,7 +169,7 @@ export default function Dashboard() {
               <Tag t={`${mySection.name} · #${myRank} of ${sections.length}`} className="bg-chip text-chip-ink" />
             )}
             <Tag t={`Streak · ${me?.streak ?? 0} days`} className="text-ink border border-rule-soft" />
-            <Tag t={`Season total · ${me?.total_points?.toFixed(1) ?? 0} pts`} className="text-ink border border-rule-soft" />
+            <Tag t={`Summer total · ${me?.total_points?.toFixed(1) ?? 0} pts`} className="text-ink border border-rule-soft" />
           </div>
         </div>
         <div className="bg-panel px-5 py-[18px] border border-rule-soft">
@@ -196,7 +196,7 @@ export default function Dashboard() {
       <div className="grid grid-cols-2 lg:grid-cols-4 border-b border-rule-soft">
         {[
           { k: 'MINUTES THIS WEEK', v: weekMinutes, sub: `${activities.length} recent activities`, accent: 'text-brand' },
-          { k: 'POINTS THIS WEEK', v: me?.week_points ?? 0, sub: `${me?.total_points?.toFixed(1) ?? 0} pts this season`, accent: 'text-accent-2' },
+          { k: 'POINTS THIS WEEK', v: me?.week_points ?? 0, sub: `${me?.total_points?.toFixed(1) ?? 0} pts this summer`, accent: 'text-accent-2' },
           { k: 'SECTION RANK', v: myRank > 0 ? `#${myRank}` : '—', sub: mySection ? `${mySection.name} · ${mySection.members} members` : '—', accent: 'text-ink' },
           { k: 'DAYS LEFT IN WEEK', freeze: livePeriod?.freeze_datetime ?? null, sub: livePeriod ? `until ${fmtFreeze(livePeriod.freeze_datetime)}` : '—', accent: 'text-accent' },
         ].map((s, i) => {
@@ -224,7 +224,7 @@ export default function Dashboard() {
           <div className="flex items-baseline justify-between mb-2.5">
             <h2 className="font-tight font-extrabold text-[22px] tracking-[-0.02em] m-0">Section leaderboard</h2>
             <div className="flex items-center gap-1.5 p-[3px] border border-rule-soft">
-              {[{ v: 'week', label: 'Weekly' }, { v: 'season', label: 'Season Total' }].map((o) =>
+              {[{ v: 'week', label: 'Weekly' }, { v: 'season', label: 'Summer Total' }].map((o) =>
                 <button key={o.v} onClick={() => setLbMode(o.v)}
                   className={`font-mono text-[10px] tracking-[.12em] uppercase px-2.5 py-[5px] border-none cursor-pointer${lbMode === o.v ? ' bg-ink text-panel font-bold' : ' bg-transparent text-ink-soft font-medium'}`}>
                   {o.label}

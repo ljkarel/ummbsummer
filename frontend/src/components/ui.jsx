@@ -1,6 +1,18 @@
 import { useState, useEffect, useRef } from 'react';
 import { scoreFor } from '../lib/scoring.js';
 
+export const INPUT_CLS = 'block w-full px-4 py-3.5 border border-rule-soft bg-panel text-ink font-sans text-[15px] tracking-[-0.005em] outline-none box-border';
+export const INPUT_ERR_STYLE = { outline: '2px solid var(--brand)', outlineOffset: '-1px' };
+
+export function SelectWrapper({ children }) {
+  return (
+    <div className="relative">
+      {children}
+      <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-ink-soft text-sm">▾</span>
+    </div>
+  );
+}
+
 // weight accepts 1 or 1.5; soft uses the faint rule color
 export function Rule({ soft = false, weight = 1 }) {
   return <div className={`w-full ${soft ? 'bg-rule-soft' : 'bg-rule'}`} style={{ height: weight }} />;

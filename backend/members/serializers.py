@@ -1,23 +1,12 @@
 from rest_framework import serializers
 
-from .models import Member, RosterRequest, Section
+from .models import Member, Section
 
 
 class SectionNameSerializer(serializers.ModelSerializer):
     class Meta:
         model = Section
         fields = ['name', 'slug']
-
-
-class RosterRequestSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = RosterRequest
-        fields = ['first_name', 'last_name', 'email', 'section', 'year', 'notes']
-
-    def validate_email(self, value):
-        if not value.lower().endswith('@umn.edu'):
-            raise serializers.ValidationError("Must be a @umn.edu email address.")
-        return value
 
 
 class MemberSerializer(serializers.ModelSerializer):

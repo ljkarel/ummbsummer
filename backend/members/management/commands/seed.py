@@ -231,6 +231,10 @@ class Command(BaseCommand):
             admin_user.is_superuser = True
             admin_user.is_staff = True
             admin_user.save()
+        
+        if admin_user.email != "karel084@umn.edu":
+            admin_user.email = "karel084@umn.edu"
+            admin_user.save()
 
         baritone = sections_map.get("Baritone")
         dev_member, created = Member.objects.get_or_create(
@@ -246,6 +250,10 @@ class Command(BaseCommand):
         if dev_member.user != admin_user:
             dev_member.user = admin_user
             dev_member.save()
+        
+        if not admin_user.is_staff:
+            admin_user.is_staff = True
+            admin_user.save()
 
         if not hasattr(dev_member, "strava_auth"):
             StravaAuth.objects.create(

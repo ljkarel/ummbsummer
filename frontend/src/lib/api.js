@@ -70,6 +70,10 @@ export const getSections = () => apiFetch('/api/members/sections/');
 export const submitRosterRequest = (body) =>
   apiFetch('/api/members/roster-requests/', { method: 'POST', body });
 
+// Feedback
+export const submitFeedback = (body) =>
+  apiFetch('/api/members/feedback/', { method: 'POST', body });
+
 // Art
 export const getArtWall = (periodId) => apiFetch(`/api/art/wall/?period=${periodId}`);
 export const getMyArtSub = (periodId) =>

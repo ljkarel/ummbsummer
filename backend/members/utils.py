@@ -1,9 +1,21 @@
 import csv
 from datetime import UTC, datetime, timedelta, timezone
 
+from django.conf import settings as django_settings
+from django.contrib.auth import get_user_model
+from django.core.mail import send_mail
 from django.utils import timezone as dj_timezone
 
 from .models import Member, Section, StravaAuth
+
+
+def notify_admins(subject, body):
+    User = get_user_model()
+    admin_emails = list(User.objects.filter(is_staff=True).values_list('email', flat=True))
+    print(f"Admin emails: {admin_emails}")
+    if admin_emails:
+        print(f"Sending email to admins: {admin_emails}")
+        send_mail(subject, body, django_settings.DEFAULT_FROM_EMAIL, admin_emails, fail_silently=False)
 
 
 def compute_member_streak(member) -> int:

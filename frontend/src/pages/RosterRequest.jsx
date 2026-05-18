@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { StaffLines, Mono } from '../components/ui.jsx';
+import { StaffLines, Mono, INPUT_CLS, INPUT_ERR_STYLE, SelectWrapper } from '../components/ui.jsx';
 import { getSections, submitRosterRequest } from '../lib/api.js';
 
 const YEAR_OPTIONS = [
@@ -12,7 +12,7 @@ const YEAR_OPTIONS = [
 ];
 
 
-const UMN_EMAIL_RE = /^[^\s@]+@umn\.edu$/i;
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/i;
 
 function FloatRoutes() {
   const paths = [
@@ -29,17 +29,6 @@ function FloatRoutes() {
   );
 }
 
-function SelectWrapper({ children }) {
-  return (
-    <div className="relative">
-      {children}
-      <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-ink-soft text-sm">▾</span>
-    </div>
-  );
-}
-
-const INPUT_CLS = 'block w-full px-4 py-3.5 border border-rule-soft bg-panel text-ink font-sans text-[15px] tracking-[-0.005em] outline-none box-border';
-const INPUT_ERR_STYLE = { outline: '2px solid var(--brand)', outlineOffset: '-1px' };
 
 export default function RosterRequest() {
   const [sections, setSections] = useState(null);
@@ -65,7 +54,7 @@ export default function RosterRequest() {
     const errs = {};
     if (!data.firstName.trim()) errs.firstName = 'Required';
     if (!data.lastName.trim()) errs.lastName = 'Required';
-    if (!UMN_EMAIL_RE.test(data.email.trim())) errs.email = 'Must be a @umn.edu address';
+    if (!EMAIL_RE.test(data.email.trim())) errs.email = 'Must be a valid email address';
     if (!data.section) errs.section = 'Required';
     if (!data.year) errs.year = 'Required';
     setErrors(errs);
@@ -223,7 +212,7 @@ export default function RosterRequest() {
               />
               {errors.email
                 ? <Mono className="block mt-1 text-[10px] text-brand">{errors.email}</Mono>
-                : <Mono className="block mt-1 text-[10px] text-ink-soft">Must be your @umn.edu address</Mono>
+                : <Mono className="block mt-1 text-[10px] text-ink-soft">Must be a valid email address</Mono>
               }
             </div>
 

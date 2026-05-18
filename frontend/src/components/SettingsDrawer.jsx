@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Mono } from './ui.jsx';
 import { getMe, patchMe, logout } from '../lib/api.js';
 
@@ -138,8 +139,22 @@ export function SettingsDrawer({ open, onClose }) {
             </div>
           )}
           <Mono className="block mt-2 text-[10.5px] text-ink-soft leading-[1.4]">
-            Revoking will stop activity syncs. You can reconnect any time before the season ends.
+            Revoking will stop activity syncs. You can reconnect any time before the program ends.
           </Mono>
+        </div>
+
+        <div className="h-px bg-rule-soft mx-5" />
+
+        {/* Support */}
+        <div className="px-5 py-3">
+          <SectionHeader>Support</SectionHeader>
+          <Link
+            to="/feedback"
+            onClick={onClose}
+            className="text-[13px] text-ink-soft hover:text-ink no-underline"
+          >
+            Submit feedback →
+          </Link>
         </div>
 
         <div className="h-px bg-rule-soft mx-5" />
