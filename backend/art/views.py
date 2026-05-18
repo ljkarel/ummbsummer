@@ -29,7 +29,6 @@ class ArtWallView(APIView):
             )
             .select_related('member', 'member__section', 'activity')
             .prefetch_related('likes')
-            .order_by('-likes__id')  # sorted by like count descending via annotation below
         )
 
         # Sort by like count in Python (avoids complex annotation for now)
