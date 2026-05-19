@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo, Fragment } from 'react';
-import { Mono, Rule, Tag } from '../components/ui.jsx';
+import { Mono, Tag } from '../components/ui.jsx';
 import { TopBar } from '../components/layout/TopBar.jsx';
 import { BottomNav } from '../components/layout/BottomNav.jsx';
 import { PageFooter } from '../components/layout/PageFooter.jsx';
@@ -175,30 +175,15 @@ export default function Activity() {
     <div className="w-full min-h-screen bg-bg text-ink font-sans px-9 pt-3 pb-20 relative" data-page-root>
       <TopBar />
 
-      <div className="py-[26px] pb-[22px]">
-        <Mono className="text-[11px] text-ink-soft tracking-[.18em] uppercase">Your activity — summer to date</Mono>
-        <h1 className="font-tight font-extrabold text-[56px] leading-none mt-2 mb-0 [text-wrap:balance]" style={{ lineHeight: 1.02, letterSpacing: '-0.035em' }}>
-          <Mono className="font-tight font-extrabold text-brand" style={{ fontSize: 'inherit', letterSpacing: '-0.035em' }}>{originalTotalCount}</Mono> activities · <Mono className="font-tight font-extrabold" style={{ fontSize: 'inherit', letterSpacing: '-0.035em' }}>{(me?.total_minutes ?? 0).toLocaleString()}</Mono> minutes logged.
-        </h1>
-      </div>
-
-      <Rule soft />
-
-      <div className="grid grid-cols-2 lg:grid-cols-4 border-b border-rule-soft">
-        {[
-          { k: 'ACTIVITIES',  v: originalTotalCount,             sub: 'this summer',                                  accentClass: 'text-brand' },
-          { k: 'MINUTES',     v: me?.total_minutes ?? 0, sub: 'logged via Strava',                            accentClass: 'text-accent-2' },
-          { k: 'POINTS',      v: +(me?.total_points?.toFixed(1) ?? 0), sub: `this summer`,                    accentClass: 'text-ink' },
-          { k: 'DAY STREAK',  v: me?.streak ?? 0,        sub: 'current streak',                               accentClass: 'text-accent' },
-        ].map((s, i) => (
-          <div key={s.k} className={`p-[22px] pb-[26px] ${colSep(i, { base: 2, lg: 4 })} ${rowSep(i, 4, { base: 2, lg: 4 })}`}>
-            <Mono className="text-[10px] tracking-[.16em] text-ink-soft">{s.k}</Mono>
-            <div className={`font-tight font-extrabold text-[52px] leading-none mt-2 ${s.accentClass}`} style={{ letterSpacing: '-0.04em' }}>
-              {typeof s.v === 'number' ? s.v.toLocaleString() : s.v}
-            </div>
-            <div className="text-xs text-ink-soft mt-[6px]">{s.sub}</div>
-          </div>
-        ))}
+      <div className="py-3 border-b border-rule-soft">
+        <Mono className="text-sm text-ink-soft">
+          <span className="text-brand font-bold">{originalTotalCount.toLocaleString()}</span> activities
+          {' · '}
+          <span className="text-accent-2 font-bold">{(me?.total_minutes ?? 0).toLocaleString()}</span> min
+          {' · '}
+          <span className="text-accent font-bold">{me?.streak ?? 0}</span> day streak
+          <span className="text-[11px] tracking-[.14em] uppercase ml-2 opacity-50"> — summer to date</span>
+        </Mono>
       </div>
 
       <div className="mt-7">
