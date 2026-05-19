@@ -277,7 +277,7 @@ export default function Dashboard() {
       )}
 
       {/* Hero grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-[1.5fr_1fr] gap-8 items-end py-[26px]">
+      <div className="grid grid-cols-1 lg:grid-cols-[1.5fr_1fr] gap-8 items-end py-[15px]">
         <div>
           <Mono className="text-[11px] text-ink-soft tracking-[.18em] uppercase">
             {me ? `Hey ${me.name} —` : 'Loading…'}
@@ -351,10 +351,10 @@ export default function Dashboard() {
             </div>
           </div>
           <Rule weight={1.5} />
-          <div className="border-b border-rule-soft" style={{ display: 'grid', gridTemplateColumns: lbMode === 'week' ? '28px 1.4fr 2.5fr 70px 28px' : '28px 1.4fr 2.5fr 70px', gap: 12, padding: '10px 0 8px' }}>
+          <div className={`border-b border-rule-soft grid gap-3${lbMode === 'week' ? ' grid-cols-[28px_1fr_70px_28px] sm:grid-cols-[28px_1.4fr_2.5fr_70px_28px]' : ' grid-cols-[28px_1fr_70px] sm:grid-cols-[28px_1.4fr_2.5fr_70px]'}`} style={{ padding: '10px 0 8px' }}>
             <Mono className="text-[9px] text-ink-soft tracking-[.14em]">#</Mono>
             <Mono className="text-[9px] text-ink-soft tracking-[.14em]">SECTION</Mono>
-            <Mono className="text-[9px] text-ink-soft tracking-[.14em]">
+            <Mono className="text-[9px] text-ink-soft tracking-[.14em] hidden sm:block">
               {lbMode === 'week'
                 ? `AVG PTS · ${selectedPeriodIdx >= 0 ? `WK ${String(selectedPeriodIdx + 1).padStart(2, '0')}` : '—'}${livePeriod && selectedPeriodId === livePeriod.id ? ' (LIVE)' : ''}`
                 : `RANK PTS · THRU WK ${selectedPeriodIdx >= 0 ? String(selectedPeriodIdx + 1).padStart(2, '0') : '—'}`}
@@ -374,14 +374,14 @@ export default function Dashboard() {
                 const trend = weekTrendMap[s.name] ?? 0;
                 return (
                   <div key={s.name} data-section={s.name}
-                    className={`border-b border-rule-soft items-center${s.is_me ? ' bg-black/[.025]' : ' bg-transparent'}`}
-                    style={{ display: 'grid', gridTemplateColumns: lbMode === 'week' ? '28px 1.4fr 2.5fr 70px 28px' : '28px 1.4fr 2.5fr 70px', alignItems: 'center', gap: 12, padding: '12px 0' }}>
+                    className={`border-b border-rule-soft items-center grid gap-3${s.is_me ? ' bg-black/[.025]' : ' bg-transparent'}${lbMode === 'week' ? ' grid-cols-[28px_1fr_70px_28px] sm:grid-cols-[28px_1.4fr_2.5fr_70px_28px]' : ' grid-cols-[28px_1fr_70px] sm:grid-cols-[28px_1.4fr_2.5fr_70px]'}`}
+                    style={{ alignItems: 'center', padding: '12px 0' }}>
                     <Mono className={`text-[13px]${isTop ? ' text-brand font-bold' : ' text-ink-soft font-medium'}`}>{String(rankNum).padStart(2, '0')}</Mono>
                     <div className="flex items-center gap-2">
                       <span className={`text-[15px] tracking-[-0.01em]${s.is_me ? ' font-bold' : ' font-semibold'}`}>{s.name}</span>
                       {s.is_me && <Tag t="YOU" className="bg-chip text-chip-ink" />}
                     </div>
-                    <div className="relative h-[10px]">
+                    <div className="relative h-[10px] hidden sm:block">
                       <div className="absolute inset-0 bg-rule-soft" style={{ height: 1, top: '50%' }} />
                       <div className="absolute left-0 top-0 bottom-0"
                         style={{
