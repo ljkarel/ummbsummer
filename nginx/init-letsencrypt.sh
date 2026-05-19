@@ -25,7 +25,7 @@ docker compose --profile prod run --rm --entrypoint "\
         -subj '/CN=localhost'" certbot
 
 echo "### Starting nginx with dummy certificate..."
-docker compose --profile prod up --detach --wait nginx
+docker compose --profile prod up --detach --wait --build nginx
 
 echo "### Deleting dummy certificate..."
 docker compose --profile prod run --rm --entrypoint "\
