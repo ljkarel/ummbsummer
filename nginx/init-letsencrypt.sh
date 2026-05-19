@@ -10,28 +10,28 @@ DOMAIN="ummbsummer.com"
 EMAIL="lukas.karel@astrinbio.com"
 STAGING=0  # Set to 1 to use Let's Encrypt staging (no rate limits, for testing)
 
-if docker compose --profile prod run --rm \
-    --entrypoint "test -f /etc/letsencrypt/live/$DOMAIN/fullchain.pem" certbot; then
+if docker compose --profile prod run --rm --entrypoint sh certbot \
+    -c "test -f /etc/letsencrypt/live/$DOMAIN/fullchain.pem"; then
     echo "Certificates already exist for $DOMAIN. Nothing to do."
     exit 0
 fi
 
 echo "### Creating dummy certificate for $DOMAIN..."
-docker compose --profile prod run --rm --entrypoint "\
+docker compose --profile prod run --rm --entrypoint sh certbot -c "\
     mkdir -p /etc/letsencrypt/live/$DOMAIN && \
     openssl req -x509 -nodes -newkey rsa:4096 -days 1 \
-        -keyout '/etc/letsencrypt/live/$DOMAIN/privkey.pem' \
-        -out    '/etc/letsencrypt/live/$DOMAIN/fullchain.pem' \
-        -subj '/CN=localhost'" certbot
+        -keyout /etc/letsencrypt/live/$DOMAIN/privkey.pem \
+        -out    /etc/letsencrypt/live/$DOMAIN/fullchain.pem \
+        -subj /CN=localhost"
 
 echo "### Starting nginx with dummy certificate..."
 docker compose --profile prod up --detach --wait --build nginx
 
 echo "### Deleting dummy certificate..."
-docker compose --profile prod run --rm --entrypoint "\
+docker compose --profile prod run --rm --entrypoint sh certbot -c "\
     rm -rf /etc/letsencrypt/live/$DOMAIN && \
     rm -rf /etc/letsencrypt/archive/$DOMAIN && \
-    rm -rf /etc/letsencrypt/renewal/$DOMAIN.conf" certbot
+    rm -rf /etc/letsencrypt/renewal/$DOMAIN.conf"
 
 STAGING_ARG=""
 if [ "$STAGING" = "1" ]; then
@@ -39,13 +39,13 @@ if [ "$STAGING" = "1" ]; then
 fi
 
 echo "### Requesting Let's Encrypt certificate for $DOMAIN..."
-docker compose --profile prod run --rm --entrypoint "\
+docker compose --profile prod run --rm --entrypoint sh certbot -c "\
     certbot certonly --webroot -w /var/www/certbot \
         $STAGING_ARG \
         --email $EMAIL \
         -d $DOMAIN \
         --agree-tos \
-        --force-renewal" certbot
+        --force-renewal"
 
 echo "### Reloading nginx..."
 docker compose --profile prod exec nginx nginx -s reload
