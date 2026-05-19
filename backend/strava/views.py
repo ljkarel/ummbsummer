@@ -20,6 +20,7 @@ from members.models import StravaAuth
 from .tasks import process_strava_webhook, sync_member_activities
 from .utils import get_profile_picture, member_in_club, token_exchange, valid_scope
 
+WEBHOOK_ENDPOINT_TOKEN = os.getenv('STRAVA_WEBHOOK_ENDPOINT_TOKEN')
 WEBHOOK_VERIFY_TOKEN = os.getenv('STRAVA_WEBHOOK_VERIFY_TOKEN')
 WEBHOOK_SUBSCRIPTION_ID = os.getenv('STRAVA_WEBHOOK_SUBSCRIPTION_ID')
 
@@ -122,21 +123,27 @@ class StravaCallbackView(APIView):
         return redirect(f'{settings.FRONTEND_URL}/onboarding/profile')
 
 
-def _verify_strava_signature(request) -> bool:
-    sig_header = request.headers.get('X-Strava-Signature', '')
-    try:
-        parts = dict(item.split('=', 1) for item in sig_header.split(','))
-        timestamp = parts['t']
-        v1 = parts['v1']
-    except (KeyError, ValueError):
-        return False
+def verify_webhook(request, secret, tolerance_seconds=300):
+    header = request.headers.get("X-Strava-Signature")
+    if not header:
+        raise ValueError("Missing X-Strava-Signature header")
 
-    if abs(time.time() - int(timestamp)) > 300:
-        return False
+    parts = dict(p.split("=", 1) for p in header.split(","))
+    timestamp = parts["t"]
+    signature = parts["v1"]
 
-    signed_payload = f"{timestamp}.{request.body.decode()}"
-    expected = hmac.new(CLIENT_SECRET.encode(), signed_payload.encode(), hashlib.sha256).hexdigest()
-    return hmac.compare_digest(expected, v1)
+    if abs(time.time() - int(timestamp)) > tolerance_seconds:
+        raise ValueError("Timestamp outside tolerance")
+
+    signed_payload = f"{timestamp}.{request.body.decode('utf-8')}"
+    expected = hmac.new(
+        secret.encode("utf-8"),
+        signed_payload.encode("utf-8"),
+        hashlib.sha256
+    ).hexdigest()
+
+    if not hmac.compare_digest(signature, expected):
+        raise ValueError("Invalid signature")
 
 
 @method_decorator(csrf_exempt, name='dispatch')
@@ -144,7 +151,10 @@ class StravaWebhooksView(APIView):
     authentication_classes = []
     permission_classes = []
 
-    def get(self, request):
+    def get(self, request, token):
+        if token != WEBHOOK_ENDPOINT_TOKEN:
+            raise NotFound()
+
         mode = request.GET.get('hub.mode')
         challenge = request.GET.get('hub.challenge')
         verify_token = request.GET.get('hub.verify_token')
@@ -157,12 +167,18 @@ class StravaWebhooksView(APIView):
 
         return Response({"hub.challenge": challenge})
 
-    def post(self, request):
-        logger.warning("Received Strava webhook request")
-        logger.warning("Headers: %s", dict(request.headers))
-        if not _verify_strava_signature(request):
-            raise PermissionDenied("Invalid signature.")
-        logger.warning("Received Strava webhook: %s", request)
+    def post(self, request, token):
+        if token != WEBHOOK_ENDPOINT_TOKEN:
+            raise NotFound()
+
+        # TODO: uncomment once Strava documents/exposes the signing secret
+        # try:
+        #     verify_webhook(request, CLIENT_SECRET)
+        # except ValueError as e:
+        #     logger.warning("Invalid Strava webhook: %s", e)
+        #     raise PermissionDenied("Invalid signature.")
+
+        logger.warning("Received Strava webhook: %s", request.data)
 
         if request.data['subscription_id'] != int(WEBHOOK_SUBSCRIPTION_ID):
             raise PermissionDenied("Invalid subscription ID.")

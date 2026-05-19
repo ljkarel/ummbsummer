@@ -197,7 +197,7 @@ def create_strava_push_subscription():
     payload = {
         'client_id': os.getenv('STRAVA_CLIENT_ID'),
         'client_secret': os.getenv('STRAVA_CLIENT_SECRET'),
-        'callback_url': f'{settings.BACKEND_URL}/api/strava/webhooks/',
+        'callback_url': f'{settings.BACKEND_URL}/api/strava/webhooks/{os.getenv("STRAVA_WEBHOOK_ENDPOINT_TOKEN")}/',
         'verify_token': os.getenv('STRAVA_WEBHOOK_VERIFY_TOKEN'),
     }
 
