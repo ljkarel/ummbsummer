@@ -215,6 +215,17 @@ class StravaAuth(models.Model):
             self.refresh_access_token()
         return self.access_token
 
+    revoked_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Set when the member revokes Strava access via webhook."
+    )
+
+    def revoke(self):
+        from django.utils.timezone import now
+        self.revoked_at = now()
+        self.save(update_fields=['revoked_at'])
+
     def refresh_access_token(self):
         """Refreshes the Strava access token using the refresh token."""
         response = requests.post(TOKEN_URL, data={

@@ -1,9 +1,22 @@
 from django.db import models
+from django.utils.timezone import now
 
 from members.models import Member
 
 from .enums import SportType
 from .utils import polyline_to_svg_path
+
+DELETION_REASONS = [
+    ('strava_delete', 'Deleted on Strava'),
+    ('strava_deauth', 'Strava access revoked'),
+    ('sync_missing', 'Not found during sync'),
+    ('date_out_of_range', 'Date outside all competition periods'),
+]
+
+
+class ActiveActivityManager(models.Manager):
+    def get_queryset(self):
+        return super().get_queryset().filter(deleted_at__isnull=True)
 
 
 class Activity(models.Model):
@@ -102,6 +115,24 @@ class Activity(models.Model):
         help_text="The competition period this activity falls within."
     )
 
+    deleted_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text="Set when the activity is soft-deleted (removed from Strava or access revoked)."
+    )
+
+    deletion_reason = models.CharField(
+        max_length=20,
+        choices=DELETION_REASONS,
+        blank=True,
+        default='',
+        help_text="Why this activity was soft-deleted."
+    )
+
+    objects = ActiveActivityManager()
+    all_objects = models.Manager()
+
     class Meta:
         verbose_name = "Activity"
         verbose_name_plural = "Activities"
@@ -111,11 +142,17 @@ class Activity(models.Model):
     def __str__(self):
         return f"{self.member} on {self.datetime.strftime('%b %d')}: {self.minutes} min {self.sport_type}"
 
+    def soft_delete(self, reason: str):
+        if not self.deleted_at:
+            self.deleted_at = now()
+            self.deletion_reason = reason
+            self.save(update_fields=['deleted_at', 'deletion_reason'])
+
     def save(self, *args, **kwargs):
         old_polyline = None
 
         try:
-            old = Activity.objects.get(pk=self.pk)
+            old = Activity.all_objects.get(pk=self.pk)
             old_polyline = old.polyline
         except Activity.DoesNotExist:
             pass
@@ -130,8 +167,7 @@ class Activity(models.Model):
             else:
                 self.svg_path, self.svg_view_box = '', '0 0 100 100'
 
-        # Assign to competition period if not already set
-        if self.period_id is None and self.datetime:
+        if self.datetime:
             from metrics.utils import get_period_for_datetime
             self.period = get_period_for_datetime(self.datetime)
 

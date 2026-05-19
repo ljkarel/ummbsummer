@@ -170,10 +170,12 @@ def update_member_activities(member: Member):
                 'datetime': parse(activity['start_date']),
                 'polyline': activity.get('map', {}).get('summary_polyline'),
                 'manual': activity['manual'],
-                'private': activity['private']
+                'private': activity['private'],
+                'deleted_at': None,
+                'deletion_reason': '',
             }
 
-            Activity.objects.update_or_create(
+            Activity.all_objects.update_or_create(
                 activity_id=activity_id,
                 defaults=activity_data
             )
@@ -183,7 +185,8 @@ def update_member_activities(member: Member):
 
         current_page += 1
 
-    Activity.objects.filter(member=member).exclude(activity_id__in=fetched_activity_ids).delete()
+    for activity in Activity.objects.filter(member=member).exclude(activity_id__in=fetched_activity_ids):
+        activity.soft_delete('sync_missing')
 
 
 WEBHOOK_ENDPOINT_TOKEN = os.getenv('STRAVA_WEBHOOK_ENDPOINT_TOKEN')

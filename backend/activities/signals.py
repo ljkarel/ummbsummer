@@ -9,10 +9,12 @@ from .models import Activity
 
 @receiver(post_save, sender=Activity)
 def validate_activity_period(sender, instance, **kwargs):
-    """Delete the activity if it falls outside all competition periods."""
+    """Soft-delete the activity if it falls outside all competition periods."""
+    if instance.deleted_at:
+        return
     period = get_period_for_datetime(localtime(instance.datetime))
     if period is None:
-        instance.delete()
+        instance.soft_delete('date_out_of_range')
 
 
 @receiver(post_delete, sender=Activity)
