@@ -19,6 +19,7 @@ else:
     ALLOWED_HOSTS = ['ummbsummer.com']
     BACKEND_URL = 'https://ummbsummer.com'
     FRONTEND_URL = 'https://ummbsummer.com'
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 CORS_ALLOWED_ORIGINS = [FRONTEND_URL]
 CSRF_TRUSTED_ORIGINS = [FRONTEND_URL]
