@@ -141,12 +141,12 @@ def update_member_activities(member: Member):
     fetched_activity_ids = set()
 
     while True:
-        params = {
+        params = {k: v for k, v in {
             'page': current_page,
             'per_page': page_size,
             'after': after,
             'before': before,
-        }
+        }.items() if v is not None}
 
         response = requests.get(ACTIVITIES_URL, headers=headers, params=params, timeout=10)
         if response.status_code != 200:

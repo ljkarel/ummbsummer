@@ -39,24 +39,24 @@ SECTIONS = [
 
 PERIOD_DATES = [
     # (name, start_date, end_date, freeze_datetime_utc)
-    ("Period 1",  date(2026, 5,  4), date(2026, 5, 10), datetime(2026,  5, 11, 4, 59, tzinfo=timezone.utc)),
-    ("Period 2",  date(2026, 5, 11), date(2026, 5, 17), datetime(2026,  5, 18, 4, 59, tzinfo=timezone.utc)),
-    ("Period 3",  date(2026, 5, 18), date(2026, 5, 24), datetime(2026,  5, 25, 4, 59, tzinfo=timezone.utc)),
-    ("Period 4",  date(2026, 5, 25), date(2026, 5, 31), datetime(2026,  6,  1, 4, 59, tzinfo=timezone.utc)),
-    ("Period 5",  date(2026, 6,  1), date(2026, 6,  7), datetime(2026,  6,  8, 4, 59, tzinfo=timezone.utc)),
-    ("Period 6",  date(2026, 6,  8), date(2026, 6, 14), datetime(2026,  6, 15, 4, 59, tzinfo=timezone.utc)),
-    ("Period 7",  date(2026, 6, 15), date(2026, 6, 21), datetime(2026,  6, 22, 4, 59, tzinfo=timezone.utc)),
-    ("Period 8",  date(2026, 6, 22), date(2026, 6, 28), datetime(2026,  6, 29, 4, 59, tzinfo=timezone.utc)),
-    ("Period 9",  date(2026, 6, 29), date(2026, 7,  5), datetime(2026,  7,  6, 4, 59, tzinfo=timezone.utc)),
-    ("Period 10", date(2026, 7,  6), date(2026, 7, 12), datetime(2026,  7, 13, 4, 59, tzinfo=timezone.utc)),
-    ("Period 11", date(2026, 7, 13), date(2026, 7, 19), datetime(2026,  7, 20, 4, 59, tzinfo=timezone.utc)),
-    ("Period 12", date(2026, 7, 20), date(2026, 7, 26), datetime(2026,  7, 27, 4, 59, tzinfo=timezone.utc)),
+    ("Week 1",  date(2026, 5,  4), date(2026, 5, 10), datetime(2026,  5, 11, 4, 59, tzinfo=timezone.utc)),
+    ("Week 2",  date(2026, 5, 11), date(2026, 5, 17), datetime(2026,  5, 18, 4, 59, tzinfo=timezone.utc)),
+    ("Week 3",  date(2026, 5, 18), date(2026, 5, 24), datetime(2026,  5, 25, 4, 59, tzinfo=timezone.utc)),
+    ("Week 4",  date(2026, 5, 25), date(2026, 5, 31), datetime(2026,  6,  1, 4, 59, tzinfo=timezone.utc)),
+    ("Week 5",  date(2026, 6,  1), date(2026, 6,  7), datetime(2026,  6,  8, 4, 59, tzinfo=timezone.utc)),
+    ("Week 6",  date(2026, 6,  8), date(2026, 6, 14), datetime(2026,  6, 15, 4, 59, tzinfo=timezone.utc)),
+    ("Week 7",  date(2026, 6, 15), date(2026, 6, 21), datetime(2026,  6, 22, 4, 59, tzinfo=timezone.utc)),
+    ("Week 8",  date(2026, 6, 22), date(2026, 6, 28), datetime(2026,  6, 29, 4, 59, tzinfo=timezone.utc)),
+    ("Week 9",  date(2026, 6, 29), date(2026, 7,  5), datetime(2026,  7,  6, 4, 59, tzinfo=timezone.utc)),
+    ("Week 10", date(2026, 7,  6), date(2026, 7, 12), datetime(2026,  7, 13, 4, 59, tzinfo=timezone.utc)),
+    ("Week 11", date(2026, 7, 13), date(2026, 7, 19), datetime(2026,  7, 20, 4, 59, tzinfo=timezone.utc)),
+    ("Week 12", date(2026, 7, 20), date(2026, 7, 26), datetime(2026,  7, 27, 4, 59, tzinfo=timezone.utc)),
 ]
 
 ART_THEMES = {
-    "Period 1": "Loop",
-    "Period 2": "Letter U",
-    "Period 3": "Letter M",
+    "Week 1": "Loop",
+    "Week 2": "Letter U",
+    "Week 3": "Letter M",
 }
 
 SPORT_TYPES = [
@@ -255,15 +255,15 @@ class Command(BaseCommand):
             admin_user.is_staff = True
             admin_user.save()
 
-        if not hasattr(dev_member, "strava_auth"):
-            StravaAuth.objects.create(
-                strava_id=9999999999,
-                member=dev_member,
-                access_token="fake_dev_token",
-                refresh_token="fake_dev_refresh",
-                token_expires=datetime(2030, 1, 1, tzinfo=timezone.utc),
-                scope="activity:read_all",
-            )
+        # if not hasattr(dev_member, "strava_auth"):
+        #     StravaAuth.objects.create(
+        #         strava_id=9999999999,
+        #         member=dev_member,
+        #         access_token="fake_dev_token",
+        #         refresh_token="fake_dev_refresh",
+        #         token_expires=datetime(2030, 1, 1, tzinfo=timezone.utc),
+        #         scope="activity:read_all",
+        #     )
         self.stdout.write("  Dev user (dev@umn.edu → admin) ready.")
 
         self.stdout.write("Assigning registration statuses...")
@@ -303,11 +303,11 @@ class Command(BaseCommand):
         self.stdout.write(f"  {connected_count} members connected, others pending/unregistered.")
 
         self.stdout.write("Seeding activities (bulk_create — skips Mapbox)...")
-        active_periods = [periods[n] for n in ("Period 1", "Period 2", "Period 3")]
+        active_periods = [periods[n] for n in ("Week 1", "Week 2", "Week 3")]
         acts_per_period = {
-            "Period 1": (2, 5),
-            "Period 2": (2, 5),
-            "Period 3": (0, 3),
+            "Week 1": (2, 5),
+            "Week 2": (2, 5),
+            "Week 3": (0, 3),
         }
 
         connected_members = list(
@@ -346,7 +346,7 @@ class Command(BaseCommand):
                     dt = random_datetime_in_period(act_rng, period)
 
                     encoded_poly = make_fake_polyline(act_rng)
-                    svg = polyline_to_svg_path(encoded_poly)
+                    svg_path, svg_view_box = polyline_to_svg_path(encoded_poly)
 
                     activity_id = activity_id_base + member.pk * 10_000 + period.pk * 100 + j
                     if activity_id in existing_activity_ids:
@@ -364,7 +364,8 @@ class Command(BaseCommand):
                         sport_type=sport_name,
                         datetime=dt,
                         polyline=encoded_poly,
-                        svg_path=svg,
+                        svg_path=svg_path,
+                        svg_view_box=svg_view_box,
                         period=period,
                         manual=False,
                         private=False,
@@ -374,7 +375,7 @@ class Command(BaseCommand):
         self.stdout.write(f"  {len(activities_to_create)} activities created.")
 
         self.stdout.write("Freezing scores for completed periods...")
-        for period_name in ("Period 1", "Period 2"):
+        for period_name in ("Week 1", "Week 2"):
             freeze_section_period_scores(periods[period_name])
         self.stdout.write("  Scores frozen for Period 1 and Period 2.")
 
@@ -393,7 +394,7 @@ class Command(BaseCommand):
             + [ArtSubmission.VISIBILITY_PRIVATE] * 1
         )
 
-        for period_name in ("Period 1", "Period 2", "Period 3"):
+        for period_name in ("Week 1", "Week 2", "Week 3"):
             period = periods[period_name]
             period_members = list(
                 Member.objects.filter(

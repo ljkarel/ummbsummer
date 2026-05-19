@@ -22,11 +22,14 @@ def compute_member_streak(member) -> int:
     """Count consecutive days ending today where the member logged at least one activity."""
     dates = set(
         member.activities
-        .filter(private=False)
         .values_list('datetime__date', flat=True)
     )
+    print(dates)
     streak = 0
-    day = dj_timezone.now().date()
+    day = dj_timezone.localdate()
+    if day not in dates:
+        print(f"No activity for today ({day}), streak is 0")
+        day -= timedelta(days=1)
     while day in dates:
         streak += 1
         day -= timedelta(days=1)

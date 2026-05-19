@@ -1,7 +1,13 @@
 // colSep: right-border separator for a responsive grid item.
 // cols: { base?: number, sm?: number, lg: number }
 export function colSep(i, { base = 1, sm = null, lg }) {
-  if (i % lg === lg - 1) return '';
+  const isLastLg = i % lg === lg - 1;
+
+  if (isLastLg) {
+    // Last col in lg grid — no border at lg, but may still need one at sm
+    if (sm && i % sm !== sm - 1) return 'sm:border-r lg:border-r-0 border-rule-soft';
+    return '';
+  }
 
   if (sm) {
     if (i % sm === sm - 1) return 'lg:border-r border-rule-soft';

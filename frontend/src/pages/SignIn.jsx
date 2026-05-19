@@ -38,11 +38,11 @@ export default function SignIn() {
     getPublicStats().then(setStats).catch(() => {});
   }, []);
 
-  const totalMinutes = stats?.total_minutes ?? 12438;
+  const totalMinutes = stats?.total_minutes ?? 0;
   const totalHours = Math.round(totalMinutes / 60);
   const totalDays = (totalMinutes / (60 * 24)).toFixed(1);
-  const memberCount = stats?.member_count ?? 244;
-  const sectionCount = stats?.section_count ?? 10;
+  const memberCount = stats?.member_count ?? 0;
+  const sectionCount = stats?.section_count ?? 0;
   const liveN = stats?.live_period_n ?? null;
   const totalPeriods = stats?.total_periods ?? 8;
   const dateRange = stats ? `${fmtDate(stats.start_date)} — ${fmtDate(stats.end_date)}` : 'Jun 22 — Aug 16';

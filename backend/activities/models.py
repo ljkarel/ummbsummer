@@ -1,10 +1,8 @@
-from django.core.files.base import ContentFile
 from django.db import models
 
 from members.models import Member
 
 from .enums import SportType
-from .mapbox import generate_map
 from .utils import polyline_to_svg_path
 
 
@@ -88,6 +86,13 @@ class Activity(models.Model):
         help_text="SVG path d attribute derived from the encoded polyline, for art visualization."
     )
 
+    svg_view_box = models.CharField(
+        max_length=50,
+        blank=True,
+        default='0 0 100 100',
+        help_text="SVG viewBox for svg_path, reflecting the route's true aspect ratio."
+    )
+
     period = models.ForeignKey(
         'metrics.CompetitionPeriod',
         null=True,
@@ -107,42 +112,39 @@ class Activity(models.Model):
         return f"{self.member} on {self.datetime.strftime('%b %d')}: {self.minutes} min {self.sport_type}"
 
     def save(self, *args, **kwargs):
-        old_map = None
         old_polyline = None
 
         try:
             old = Activity.objects.get(pk=self.pk)
             old_polyline = old.polyline
-            old_map = old.map_image
         except Activity.DoesNotExist:
             pass
 
         polyline_changed = old_polyline != self.polyline
-        map_missing = self.polyline and not self.map_image
-        update_map = polyline_changed or map_missing
 
         # Keep svg_path in sync with polyline
         if polyline_changed or not self.svg_path:
-            self.svg_path = polyline_to_svg_path(self.polyline) if self.polyline else ''
+            if self.polyline:
+                print(f"Updating SVG path for activity {self.activity_id} (polyline length {len(self.polyline)})")
+                self.svg_path, self.svg_view_box = polyline_to_svg_path(self.polyline)
+            else:
+                self.svg_path, self.svg_view_box = '', '0 0 100 100'
 
         # Assign to competition period if not already set
         if self.period_id is None and self.datetime:
             from metrics.utils import get_period_for_datetime
             self.period = get_period_for_datetime(self.datetime)
 
-        if not update_map:
-            return super().save(*args, **kwargs)
-
-        if old_map:
-            old_map.delete(save=False)
-
-        if not self.polyline:
-            self.map_image = None
-            return super().save(*args, **kwargs)
-
-        image_bytes = generate_map(self.polyline)
-        if image_bytes:
-            filename = f'activity_{self.activity_id}.png'
-            self.map_image.save(filename, ContentFile(image_bytes), save=False)
+        # Mapbox disabled — skip image generation
+        # if update_map:
+        #     if old_map:
+        #         old_map.delete(save=False)
+        #     if not self.polyline:
+        #         self.map_image = None
+        #     else:
+        #         image_bytes = generate_map(self.polyline)
+        #         if image_bytes:
+        #             filename = f'activity_{self.activity_id}.png'
+        #             self.map_image.save(filename, ContentFile(image_bytes), save=False)
 
         super().save(*args, **kwargs)

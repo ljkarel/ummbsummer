@@ -23,6 +23,24 @@ class ActivitySerializer(serializers.ModelSerializer):
         return None
 
     def get_points(self, obj):
+        if not obj.period_id:
+            return round(compute_points(obj.minutes), 2)
+
+        cache_key = f'pa_{obj.member_id}_{obj.period_id}'
+        if cache_key not in self.context:
+            qs = Activity.objects.filter(
+                member_id=obj.member_id,
+                period_id=obj.period_id,
+            ).order_by('datetime').values_list('activity_id', 'minutes')
+            self.context[cache_key] = list(qs)
+
+        cumulative = 0
+        for act_id, mins in self.context[cache_key]:
+            prev = compute_points(cumulative)
+            cumulative += mins
+            if act_id == obj.activity_id:
+                return round(compute_points(cumulative) - prev, 2)
+
         return round(compute_points(obj.minutes), 2)
 
     def get_period_n(self, obj):

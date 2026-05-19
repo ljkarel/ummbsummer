@@ -4,42 +4,28 @@ import { TopBar } from '../components/layout/TopBar.jsx';
 import { BottomNav } from '../components/layout/BottomNav.jsx';
 import { PageFooter } from '../components/layout/PageFooter.jsx';
 
-import { getMe, getActivities, getSportTypes } from '../lib/api.js';
+import { getMe, getActivities, getSportTypes, getActivityHeatmap } from '../lib/api.js';
 import { colSep, rowSep } from '../utils/gridSep.js';
 
-function RouteThumb({ svgPath }) {
+function RouteThumb({ svgPath, svgViewBox = '0 0 100 100' }) {
   return (
-    <svg viewBox="0 0 100 90" width="100%" height="100%" preserveAspectRatio="none" style={{ display: 'block' }}>
-      {[14, 28, 42, 56, 70].map((y) => (
-        <line key={y} x1="0" y1={y} x2="100" y2={y - 6} stroke="var(--ink)" strokeOpacity=".06" strokeWidth=".3" />
-      ))}
-      {[20, 50, 80].map((x) => (
-        <line key={x} x1={x} y1="0" x2={x - 6} y2="90" stroke="var(--ink)" strokeOpacity=".06" strokeWidth=".3" />
-      ))}
-      <path d={svgPath || ''} fill="none" stroke="var(--brand)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
-    </svg>
+    <div className="relative w-full h-full">
+      <svg viewBox="0 0 100 100" width="100%" height="100%" preserveAspectRatio="none" className="absolute inset-0">
+        {Array.from({ length: 11 }).map((_, i) => (
+          <line key={`h${i}`} x1="0" y1={i * 10} x2="100" y2={i * 10} stroke="var(--ink)" strokeOpacity=".05" strokeWidth=".5" />
+        ))}
+        {Array.from({ length: 11 }).map((_, i) => (
+          <line key={`v${i}`} x1={i * 10} y1="0" x2={i * 10} y2="100" stroke="var(--ink)" strokeOpacity=".05" strokeWidth=".5" />
+        ))}
+      </svg>
+      <svg viewBox={svgViewBox} width="100%" height="100%" preserveAspectRatio="xMidYMid meet" className="absolute inset-0" style={{ display: 'block' }}>
+        <path d={svgPath || ''} fill="none" stroke="var(--brand)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+      </svg>
+    </div>
   );
 }
 
-function buildHeatmap(activities) {
-  // Returns a map of "weekIdx-dayIdx" → total minutes
-  // weekIdx: 0-7 (from Period 1 to Period 8), dayIdx: 0-6 (Mon-Sun)
-  const map = {};
-  for (const a of activities) {
-    if (!a.period_n) continue;
-    const weekIdx = parseInt(a.period_n.replace('Period ', ''), 10) - 1;
-    if (weekIdx < 0 || weekIdx > 7) continue;
-    const dow = new Intl.DateTimeFormat('en-US', { weekday: 'short', timeZone: 'America/Chicago' }).format(new Date(a.datetime));
-    const dowMap = { Mon: 0, Tue: 1, Wed: 2, Thu: 3, Fri: 4, Sat: 5, Sun: 6 };
-    const dayIdx = dowMap[dow] ?? 0;
-    const key = `${weekIdx}-${dayIdx}`;
-    map[key] = (map[key] || 0) + a.minutes;
-  }
-  return map;
-}
-
-function Heatmap({ activities }) {
-  const heatData = useMemo(() => buildHeatmap(activities), [activities]);
+function Heatmap({ heatData }) {
   const max = 80;
   const color = (mins) => {
     if (!mins) return 'var(--panel-alt)';
@@ -97,7 +83,7 @@ function ActivityCard({ a }) {
   return (
     <div style={{ padding: '16px 18px 18px' }}>
       <div className="bg-panel-alt mb-3 border border-rule-soft overflow-hidden" style={{ aspectRatio: '10 / 7' }}>
-        <RouteThumb svgPath={a.svg_path} />
+        <RouteThumb svgPath={a.svg_path} svgViewBox={a.svg_view_box} />
       </div>
       <div className="flex justify-between items-center mb-1">
         <Mono className="text-[10px] text-ink-soft tracking-[.12em] uppercase">{fmtDate(a.datetime)}</Mono>
@@ -110,7 +96,7 @@ function ActivityCard({ a }) {
         <div><div className="text-ink font-semibold">{a.elevation_gain > 0 ? `${Math.round(a.elevation_gain)} ft` : '—'}</div>elev</div>
       </div>
       <div className="mt-3 flex items-center justify-between">
-        <Mono className="text-[11px] text-ink-soft">POINTS</Mono>
+        <Mono className="text-[11px] text-ink-soft">{a.period_n ?? 'POINTS'}</Mono>
         <Mono className="text-lg font-extrabold text-brand">+{a.points?.toFixed(1) ?? 0}</Mono>
       </div>
     </div>
@@ -120,6 +106,7 @@ function ActivityCard({ a }) {
 export default function Activity() {
 
   const [me, setMe] = useState(null);
+  const [heatData, setHeatData] = useState({});
   const [activities, setActivities] = useState([]);
   const [totalCount, setTotalCount] = useState(0);
   const [originalTotalCount, setOriginalTotalCount] = useState(0);
@@ -146,13 +133,14 @@ export default function Activity() {
   }
 
   useEffect(() => {
-    Promise.all([getMe(), getActivities(), getSportTypes()]).then(([meData, actData, sportsData]) => {
+    Promise.all([getMe(), getActivities(), getSportTypes(), getActivityHeatmap()]).then(([meData, actData, sportsData, heatmapData]) => {
       setMe(meData);
       setActivities(actData.results ?? []);
       setTotalCount(actData.count ?? 0);
       setOriginalTotalCount(actData.count ?? 0);
       setNextUrl(actData.next ?? null);
       setSports([{ value: 'All', label: 'All' }, ...(sportsData.sports ?? [])]);
+      setHeatData(heatmapData.heatmap ?? {});
     });
   }, []);
 
@@ -214,7 +202,7 @@ export default function Activity() {
       </div>
 
       <div className="mt-7">
-        <Heatmap activities={activities} />
+        <Heatmap heatData={heatData} />
       </div>
 
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mt-8 pb-[10px] border-b" style={{ borderBottomWidth: '1.5px', borderBottomColor: 'var(--ink)' }}>

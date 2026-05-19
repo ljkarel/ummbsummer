@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { HeartIcon } from '@heroicons/react/24/outline';
 import { HeartIcon as HeartSolidIcon } from '@heroicons/react/24/solid';
 import { Mono, Rule, Tag } from '../components/ui.jsx';
@@ -31,17 +31,21 @@ function themeHeading(theme) {
   return <><span className="text-brand">{theme}</span> — draw the shape.</>;
 }
 
-function tinyMap({ svgPath, accent }) {
+function tinyMap({ svgPath, svgViewBox = '0 0 100 100', accent }) {
   return (
-    <svg viewBox="0 0 100 90" preserveAspectRatio="none" width="100%" height="100%" style={{ display: 'block' }}>
-      {[14, 28, 42, 56, 70].map((y) => (
-        <line key={`h${y}`} x1="0" y1={y} x2="100" y2={y - 4} stroke="var(--ink)" strokeOpacity=".06" strokeWidth=".3" />
-      ))}
-      {[20, 50, 80].map((x) => (
-        <line key={`v${x}`} x1={x} y1="0" x2={x - 4} y2="90" stroke="var(--ink)" strokeOpacity=".06" strokeWidth=".3" />
-      ))}
-      <path d={svgPath || ''} fill="none" stroke={accent} strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
-    </svg>
+    <div className="relative w-full h-full">
+      <svg viewBox="0 0 100 100" width="100%" height="100%" preserveAspectRatio="none" className="absolute inset-0">
+        {Array.from({ length: 11 }).map((_, i) => (
+          <line key={`h${i}`} x1="0" y1={i * 10} x2="100" y2={i * 10} stroke="var(--ink)" strokeOpacity=".05" strokeWidth=".5" />
+        ))}
+        {Array.from({ length: 11 }).map((_, i) => (
+          <line key={`v${i}`} x1={i * 10} y1="0" x2={i * 10} y2="100" stroke="var(--ink)" strokeOpacity=".05" strokeWidth=".5" />
+        ))}
+      </svg>
+      <svg viewBox={svgViewBox} preserveAspectRatio="xMidYMid meet" width="100%" height="100%" className="absolute inset-0" style={{ display: 'block' }}>
+        <path d={svgPath || ''} fill="none" stroke={accent} strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+      </svg>
+    </div>
   );
 }
 
@@ -111,15 +115,27 @@ function VisibilityRadio({ value, onChange }) {
   );
 }
 
-function CompositionCanvas({ path, rotation, title, visibility, memberName, memberSection }) {
-  const showWork = visibility !== 'private';
-  const attribution = visibility === 'public'
-    ? `${memberName || '…'} · ${memberSection || '…'}`
-    : visibility === 'anonymous'
-    ? `anon · ${memberSection || '…'}`
-    : 'you only';
+function hexLuminance(hex) {
+  if (!hex) return null;
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return (r * 299 + g * 587 + b * 114) / 1000;
+}
+
+function calcDynViewBox(svgViewBox, rotation, p = 6) {
+  const [,, vbW, vbH] = svgViewBox.split(' ').map(Number);
+  const θ = (rotation * Math.PI) / 180;
+  const cx = vbW / 2, cy = vbH / 2;
+  const hw = (vbW * Math.abs(Math.cos(θ)) + vbH * Math.abs(Math.sin(θ))) / 2;
+  const hh = (vbW * Math.abs(Math.sin(θ)) + vbH * Math.abs(Math.cos(θ))) / 2;
+  return { cx, cy, dynViewBox: `${cx - hw - p} ${cy - hh - p} ${(hw + p) * 2} ${(hh + p) * 2}` };
+}
+
+function ArtworkFrame({ svgViewBox = '0 0 100 100', rotation = 0, strokeColor, bgColor, strokeWidth, path, animate, className, children }) {
+  const { cx, cy, dynViewBox } = calcDynViewBox(svgViewBox, rotation);
   return (
-    <div className="bg-panel-alt border border-rule-soft relative overflow-hidden" style={{ aspectRatio: '4 / 3' }}>
+    <div className={['bg-panel-alt border border-rule-soft relative overflow-hidden', className].filter(Boolean).join(' ')} style={{ aspectRatio: '4 / 3', background: bgColor || undefined }}>
       <svg viewBox="0 0 100 75" width="100%" height="100%" preserveAspectRatio="none" className="absolute inset-0">
         {Array.from({ length: 12 }).map((_, i) => (
           <line key={`h${i}`} x1="0" y1={i * 6.25} x2="100" y2={i * 6.25} stroke="var(--ink)" strokeOpacity=".05" strokeWidth=".2" />
@@ -128,86 +144,210 @@ function CompositionCanvas({ path, rotation, title, visibility, memberName, memb
           <line key={`v${i}`} x1={i * 6.25} y1="0" x2={i * 6.25} y2="75" stroke="var(--ink)" strokeOpacity=".05" strokeWidth=".2" />
         ))}
       </svg>
-      {showWork ? (
-        <svg viewBox="0 0 100 90" width="100%" height="100%" preserveAspectRatio="xMidYMid meet"
-             className="absolute inset-0" style={{ transition: 'transform .35s cubic-bezier(.2,.7,.3,1)' }}>
-          <g transform={`rotate(${rotation} 50 45)`} style={{ transition: 'transform .35s cubic-bezier(.2,.7,.3,1)' }}>
-            <path d={path || ''} fill="none" stroke="var(--brand)" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
-          </g>
-        </svg>
-      ) : (
+      <svg viewBox={dynViewBox} width="100%" height="100%" preserveAspectRatio="xMidYMid meet" className="absolute inset-0">
+        <g transform={`rotate(${rotation} ${cx} ${cy})`} style={animate ? { transition: 'transform .35s cubic-bezier(.2,.7,.3,1)' } : undefined}>
+          <path d={path || ''} fill="none" stroke={strokeColor || 'var(--brand)'} strokeWidth={strokeWidth ?? 2.8} strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+        </g>
+      </svg>
+      {children}
+    </div>
+  );
+}
+
+function CompositionCanvas({ path, svgViewBox = '0 0 100 100', rotation, title, visibility, memberName, memberSection, strokeColor, bgColor, strokeWidth, isOwner = false }) {
+  const isPrivate = visibility === 'private';
+  const attribution = visibility === 'public'
+    ? `${memberName || '…'} · ${memberSection || '…'}`
+    : visibility === 'anonymous'
+    ? `Anonymous · ${memberSection || '…'}`
+    : 'Only You';
+
+  const displayDeg = ((rotation % 360) + 360) % 360;
+
+  const lum = hexLuminance(bgColor);
+  const onBg = lum === null
+    ? { strong: 'var(--ink)', soft: 'var(--ink-soft)' }
+    : lum > 128
+    ? { strong: 'rgba(0,0,0,0.85)', soft: 'rgba(0,0,0,0.45)' }
+    : { strong: 'rgba(255,255,255,0.9)', soft: 'rgba(255,255,255,0.45)' };
+
+  return (
+    <ArtworkFrame path={isOwner || !isPrivate ? path : ''} svgViewBox={svgViewBox} rotation={rotation} strokeColor={strokeColor} bgColor={bgColor} strokeWidth={strokeWidth} animate>
+      {isPrivate && !isOwner && (
         <div className="absolute inset-0 flex items-center justify-center flex-col gap-2">
-          <Mono className="text-xs text-ink-soft tracking-[.18em] uppercase">🔒 Private</Mono>
-          <Mono className="text-[10px] text-ink-soft">visible only to you on the wall</Mono>
+          <Mono className="text-xs tracking-[.18em] uppercase" style={{ color: onBg.soft }}>🔒 Private</Mono>
+          <Mono className="text-[10px]" style={{ color: onBg.soft }}>visible only to you on the wall</Mono>
         </div>
       )}
-      <div className="absolute top-[10px] left-3 font-mono text-[9px] tracking-[.14em] text-ink-soft uppercase">
-        Rotation · {rotation}°
+      <div className="absolute top-[10px] left-3 font-mono text-[9px] tracking-[.14em] uppercase" style={{ color: onBg.soft }}>
+        Rotation · {displayDeg}°
       </div>
-      <div className="absolute top-[10px] right-3 font-mono text-[9px] tracking-[.14em] text-ink-soft uppercase">
+      <div className="absolute top-[10px] right-3 font-mono text-[9px] tracking-[.14em] uppercase" style={{ color: onBg.soft }}>
         {visibility === 'public' ? 'PUBLIC' : visibility === 'anonymous' ? 'ANONYMOUS' : 'PRIVATE'}
       </div>
       <div className="absolute bottom-[10px] left-3 right-3 flex justify-between items-end">
         <div>
-          <div className="font-tight font-bold text-base tracking-[-0.01em]">{title || 'Untitled'}</div>
-          <Mono className="text-[10px] text-ink-soft mt-0.5">{attribution}</Mono>
+          <div className="font-tight font-bold text-base tracking-[-0.01em]" style={{ color: onBg.strong }}>{title || 'Untitled'}</div>
+          <Mono className="text-[10px] mt-0.5" style={{ color: onBg.soft }}>{attribution}</Mono>
+        </div>
+      </div>
+    </ArtworkFrame>
+  );
+}
+
+const STROKE_SWATCHES = [
+  { value: '', label: 'Brand' },
+  { value: '#e54b4b', label: 'Red' },
+  { value: '#e59c4b', label: 'Orange' },
+  { value: '#f0c94b', label: 'Gold' },
+  { value: '#4dc96b', label: 'Green' },
+  { value: '#4b8ef0', label: 'Blue' },
+  { value: '#a04be5', label: 'Purple' },
+  { value: '#ffffff', label: 'White' },
+];
+
+const BG_SWATCHES = [
+  { value: '', label: 'None' },
+  { value: '#0a0a0a', label: 'Black' },
+  { value: '#2a1f14', label: 'Espresso' },
+  { value: '#2b0d14', label: 'Wine' },
+  { value: '#1a1a2e', label: 'Navy' },
+  { value: '#0d2818', label: 'Forest' },
+  { value: '#3d3d3d', label: 'Charcoal' },
+  { value: '#f8f5f0', label: 'Cream' },
+  { value: '#ffffff', label: 'White' },
+  { value: '#dce8f5', label: 'Ice' },
+  { value: '#f5e6d0', label: 'Sand' },
+];
+
+const STROKE_WIDTHS = [
+  { value: 1.0, label: 'Thin' },
+  { value: 2.8, label: 'Medium' },
+  { value: 5.0, label: 'Thick' },
+  { value: 8.0, label: 'Bold' },
+];
+
+function Swatch({ color, selected, onClick, label }) {
+  const isClear = color === '';
+  return (
+    <button
+      onClick={onClick}
+      title={label}
+      className="cursor-pointer border-none p-0 relative"
+      style={{
+        width: 24,
+        height: 24,
+        background: isClear ? 'var(--panel-alt)' : color,
+        outline: selected ? '2px solid var(--ink)' : '2px solid transparent',
+        outlineOffset: 2,
+      }}
+    >
+      {isClear && (
+        <svg viewBox="0 0 24 24" width="100%" height="100%" style={{ display: 'block' }}>
+          <line x1="3" y1="3" x2="21" y2="21" stroke="var(--rule)" strokeWidth="1.5" />
+        </svg>
+      )}
+    </button>
+  );
+}
+
+function ColorPicker({ strokeColor, bgColor, onStrokeColor, onBgColor }) {
+  return (
+    <div className="flex flex-col gap-2.5">
+      <div>
+        <Mono className="text-[10px] text-ink-soft tracking-[.14em] uppercase mb-1.5 block">Route color</Mono>
+        <div className="flex gap-1.5 flex-wrap">
+          {STROKE_SWATCHES.map((s) => (
+            <Swatch
+              key={s.value}
+              color={s.value}
+              label={s.label}
+              selected={strokeColor === s.value}
+              onClick={() => onStrokeColor(s.value)}
+            />
+          ))}
+        </div>
+      </div>
+      <div>
+        <Mono className="text-[10px] text-ink-soft tracking-[.14em] uppercase mb-1.5 block">Canvas</Mono>
+        <div className="flex gap-1.5 flex-wrap">
+          {BG_SWATCHES.map((s) => (
+            <Swatch
+              key={s.value}
+              color={s.value}
+              label={s.label}
+              selected={bgColor === s.value}
+              onClick={() => onBgColor(s.value)}
+            />
+          ))}
         </div>
       </div>
     </div>
   );
 }
 
-function RotateButton({ dir, onClick }) {
+function StrokeWidthPicker({ value, onChange }) {
   return (
-    <button
-      onClick={onClick}
-      className="py-2 px-[14px] bg-panel border border-rule cursor-pointer font-mono text-[11px] tracking-[.1em] uppercase text-ink inline-flex items-center gap-2"
-    >
-      <svg width="14" height="14" viewBox="0 0 16 16" style={{ display: 'block' }}>
-        {dir === 'ccw' ? (
-          <path d="M3 8 A 5 5 0 1 0 8 3 L 8 6 M 8 3 L 11 3" fill="none" stroke="var(--ink)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-        ) : (
-          <path d="M13 8 A 5 5 0 1 1 8 3 L 8 6 M 8 3 L 5 3" fill="none" stroke="var(--ink)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-        )}
-      </svg>
-      {dir === 'ccw' ? '−45°' : '+45°'}
-    </button>
+    <div>
+      <Mono className="text-[10px] text-ink-soft tracking-[.14em] uppercase">Stroke weight</Mono>
+      <div className="grid mt-1.5 border border-rule" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
+        {STROKE_WIDTHS.map((w, i) => {
+          const isSel = value === w.value;
+          return (
+            <button
+              key={w.value}
+              onClick={() => onChange(w.value)}
+              className={[
+                'text-left py-[10px] px-3 border-none cursor-pointer font-sans',
+                i < 3 ? 'border-r border-rule-soft' : '',
+                isSel ? 'bg-ink text-panel' : 'bg-panel text-ink',
+              ].join(' ')}
+            >
+              <div className="font-tight font-bold text-[13px] tracking-[-0.01em]">{w.label}</div>
+            </button>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
-function SubmissionTile({ s, onLike }) {
+
+function SubmissionTile({ s, onLike, isOwn }) {
   return (
     <div className="p-4 pb-[18px]">
-      <div className="bg-panel-alt mb-3 border border-rule-soft overflow-hidden relative" style={{ aspectRatio: '5 / 4' }}>
-        <svg viewBox="0 0 100 80" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">
-          <g transform={`rotate(${s.rotation ?? 0} 50 40)`}>
-            <path d={s.svg_path || ''} fill="none" stroke="var(--brand)" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
-          </g>
-        </svg>
-        {s.rank != null && s.rank < 3 && (
-          <div className="absolute top-2 left-2 bg-ink text-panel font-mono text-[9px] tracking-[.14em] px-1.5 py-[3px]">
-            #{String(s.rank + 1).padStart(2, '0')}
-          </div>
-        )}
-      </div>
+      <ArtworkFrame
+        path={s.svg_path}
+        svgViewBox={s.svg_view_box}
+        rotation={s.rotation}
+        strokeColor={s.stroke_color}
+        bgColor={s.bg_color}
+        strokeWidth={s.stroke_width}
+        className="mb-3"
+      />
       <div className="font-bold text-sm tracking-[-0.01em] mb-1.5">{s.title}</div>
       <div className="flex justify-between items-center">
         <Mono className="text-[11px] text-ink-soft">
-          {s.who === null ? 'anon' : s.who}{s.section ? ` · ${s.section}` : ''}
+          {s.who === null ? 'Anonymous' : s.who}{s.section ? ` · ${s.section}` : ''}
         </Mono>
-        <button
-          onClick={() => onLike && onLike(s)}
-          className={[
-            'bg-transparent border-none py-0.5 inline-flex items-center gap-[5px]',
-            onLike ? 'cursor-pointer' : 'cursor-default',
-            s.liked_by_me ? 'text-brand' : 'text-ink-soft',
-          ].join(' ')}
-        >
-          {s.liked_by_me
-            ? <HeartSolidIcon className="w-3.5 h-3.5" style={{ color: 'var(--brand)' }} />
-            : <HeartIcon className="w-3.5 h-3.5" style={{ color: 'var(--ink-soft)' }} />}
-          <Mono className="text-[11px] font-bold" style={{ color: 'inherit' }}>{s.likes}</Mono>
-        </button>
+        {!isOwn && (
+          <button
+            onClick={() => onLike && onLike(s)}
+            className={[
+              'bg-transparent border-none py-0.5 inline-flex items-center gap-[5px]',
+              onLike ? 'cursor-pointer' : 'cursor-default',
+              s.liked_by_me ? 'text-brand' : 'text-ink-soft',
+            ].join(' ')}
+          >
+            {s.liked_by_me
+              ? <HeartSolidIcon className="w-3.5 h-3.5" style={{ color: 'var(--brand)' }} />
+              : <HeartIcon className="w-3.5 h-3.5" style={{ color: 'var(--ink-soft)' }} />}
+            <Mono className="text-[11px] font-bold" style={{ color: 'inherit' }}>{s.likes}</Mono>
+          </button>
+        )}
+        {isOwn && (
+          <Mono className="text-[11px] text-ink-soft">{s.likes} {s.likes === 1 ? 'like' : 'likes'}</Mono>
+        )}
       </div>
     </div>
   );
@@ -229,7 +369,11 @@ export default function StravaArt() {
   const [rotation, setRotation] = useState(0);
   const [title, setTitle] = useState('');
   const [visibility, setVisibility] = useState('public');
+  const [strokeColor, setStrokeColor] = useState('');
+  const [bgColor, setBgColor] = useState('');
+  const [strokeWidth, setStrokeWidth] = useState(2.8);
   const [saving, setSaving] = useState(false);
+  const carouselRef = useRef(null);
 
   useEffect(() => {
     Promise.all([getPeriods(), getMe()]).then(([periodsData, meData]) => {
@@ -262,15 +406,21 @@ export default function StravaArt() {
       const activeSub = sub && !sub.is_withdrawn ? sub : null;
       if (activeSub) {
         const matchedAct = (acts.results ?? []).find((a) => String(a.activity_id) === String(activeSub.activity_id));
-        setActivityId(matchedAct?.id ?? null);
+        setActivityId(matchedAct?.activity_id ?? null);
         setRotation(activeSub.rotation);
         setTitle(activeSub.title);
         setVisibility(activeSub.visibility);
+        setStrokeColor(activeSub.stroke_color ?? '');
+        setBgColor(activeSub.bg_color ?? '');
+        setStrokeWidth(activeSub.stroke_width ?? 2.8);
       } else {
         setActivityId(null);
         setRotation(0);
         setTitle('');
         setVisibility('public');
+        setStrokeColor('');
+        setBgColor('');
+        setStrokeWidth(2.8);
       }
       setLoading(false);
     });
@@ -278,10 +428,12 @@ export default function StravaArt() {
 
   const wall = useMemo(() => {
     if (!wallData) return [];
+    const mySubId = mySub && !mySub.is_withdrawn ? mySub.id : null;
     return [...wallData.submissions]
+      .filter((s) => !(s.id === mySubId && mySub?.visibility === 'private'))
       .sort((a, b) => b.likes - a.likes)
       .map((s, i) => ({ ...s, rank: i }));
-  }, [wallData]);
+  }, [wallData, mySub]);
 
   async function handleToggleLike(s) {
     setWallData((prev) => ({
@@ -310,12 +462,38 @@ export default function StravaArt() {
     setSaving(true);
     try {
       const activeSub = mySub && !mySub.is_withdrawn ? mySub : null;
-      const stravaId = periodActivities.find((a) => a.id === activityId)?.activity_id ?? null;
-      const body = { period: selectedPeriodId, title, activityId: stravaId, rotation, visibility };
+      const stravaId = periodActivities.find((a) => a.activity_id === activityId)?.activity_id ?? null;
+      const savedRotation = ((rotation % 360) + 360) % 360;
+      const styleFields = { strokeColor, bgColor, strokeWidth };
+      const body = { period: selectedPeriodId, title, activityId: stravaId, rotation: savedRotation, visibility, ...styleFields };
       const updated = activeSub
-        ? await patchArtSub(activeSub.id, { title, activityId: stravaId, rotation, visibility })
+        ? await patchArtSub(activeSub.id, { title, activityId: stravaId, rotation: savedRotation, visibility, ...styleFields })
         : await createArtSub(body);
       setMySub(updated);
+      setWallData((prev) => {
+        if (!prev) return prev;
+        const existing = prev.submissions.find((s) => s.id === updated.id);
+        if (updated.visibility === 'private') {
+          return { ...prev, submissions: prev.submissions.filter((s) => s.id !== updated.id) };
+        }
+        const wallEntry = {
+          id: updated.id,
+          svg_path: updated.svg_path,
+          svg_view_box: updated.svg_view_box,
+          rotation: updated.rotation,
+          stroke_color: updated.stroke_color,
+          bg_color: updated.bg_color,
+          stroke_width: updated.stroke_width,
+          title: updated.title,
+          who: updated.visibility === 'anonymous' ? null : me?.name,
+          section: me?.section,
+          likes: existing?.likes ?? 0,
+          liked_by_me: existing?.liked_by_me ?? false,
+        };
+        return existing
+          ? { ...prev, submissions: prev.submissions.map((s) => s.id === updated.id ? wallEntry : s) }
+          : { ...prev, submissions: [...prev.submissions, wallEntry] };
+      });
     } catch (e) {
       console.error(e);
     } finally {
@@ -329,10 +507,17 @@ export default function StravaArt() {
     try {
       await deleteArtSub(activeSub.id);
       setMySub({ ...mySub, is_withdrawn: true });
+      setWallData((prev) => prev
+        ? { ...prev, submissions: prev.submissions.filter((s) => s.id !== activeSub.id) }
+        : prev
+      );
       setActivityId(null);
       setRotation(0);
       setTitle('');
       setVisibility('public');
+      setStrokeColor('');
+      setBgColor('');
+      setStrokeWidth(2.8);
     } catch (e) {
       console.error(e);
     }
@@ -342,14 +527,14 @@ export default function StravaArt() {
   const isSelectedLive = selectedPeriodId === livePeriodId;
   const activeSub = mySub && !mySub.is_withdrawn ? mySub : null;
 
-  const selectedActivity = periodActivities.find((a) => a.id === activityId);
+  const selectedActivity = periodActivities.find((a) => a.activity_id === activityId);
   const currentPath = selectedActivity?.svg_path ?? activeSub?.svg_path ?? '';
+  const currentViewBox = selectedActivity?.svg_view_box ?? activeSub?.svg_view_box ?? '0 0 100 100';
 
   const selectedPeriodIdx = periods.findIndex((p) => p.id === selectedPeriodId);
   const selectedPeriodLabel = selectedPeriodIdx >= 0 ? `WK ${String(selectedPeriodIdx + 1).padStart(2, '0')}` : '';
 
-  const rotL = () => setRotation((r) => (r - 45 + 360) % 360);
-  const rotR = () => setRotation((r) => (r + 45) % 360);
+
 
   const theme = wallData?.theme ?? null;
   const dates = selectedPeriodObj
@@ -407,58 +592,78 @@ export default function StravaArt() {
       <Rule soft />
 
       {isSelectedLive && !loading && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-6">
-          <section>
+        <>
+          <section className="mt-6">
             <div className="flex justify-between items-baseline mb-[10px]">
               <h2 className="font-tight font-extrabold text-[22px] tracking-[-0.02em] m-0">Pick an activity</h2>
-              <Mono className="text-[11px] text-ink-soft tracking-[.1em] uppercase">{periodActivities.length} from {dates}</Mono>
+              <div className="flex items-center gap-3">
+                <Mono className="text-[11px] text-ink-soft tracking-[.1em] uppercase">{periodActivities.length} from {dates}</Mono>
+                <div className="hidden sm:flex gap-1">
+                  <button
+                    onClick={() => carouselRef.current?.scrollBy({ left: -240, behavior: 'smooth' })}
+                    className="w-7 h-7 border border-rule-soft bg-panel flex items-center justify-center text-ink-soft hover:text-ink cursor-pointer font-sans text-base leading-none"
+                    aria-label="Scroll left"
+                  >‹</button>
+                  <button
+                    onClick={() => carouselRef.current?.scrollBy({ left: 240, behavior: 'smooth' })}
+                    className="w-7 h-7 border border-rule-soft bg-panel flex items-center justify-center text-ink-soft hover:text-ink cursor-pointer font-sans text-base leading-none"
+                    aria-label="Scroll right"
+                  >›</button>
+                </div>
+              </div>
             </div>
             <Rule />
             {periodActivities.length === 0 ? (
               <div className="py-10 text-center text-ink-soft text-sm">No activities recorded this week yet.</div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2">
-                {periodActivities.map((a, i) => {
-                  const isSel = activityId === a.id;
+              <div
+                ref={carouselRef}
+                className="flex overflow-x-auto gap-3 pb-3 mt-[10px]"
+                style={{ scrollSnapType: 'x mandatory', scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+              >
+                {periodActivities.map((a) => {
+                  const isSel = activityId === a.activity_id;
                   return (
                     <button
                       key={a.id}
-                      onClick={() => { setActivityId(a.id); setRotation(0); }}
-                      className={[
-                        'text-left border-none bg-transparent p-4 pb-[18px] cursor-pointer font-sans text-ink flex gap-3 items-start',
-                        i % 2 === 0 ? 'border-r border-rule-soft' : '',
-                        i < periodActivities.length - 2 ? 'border-b border-rule-soft' : '',
-                      ].join(' ')}
+                      onClick={() => { setActivityId(a.activity_id); setRotation(0); }}
+                      className="text-left border-none bg-transparent p-0 cursor-pointer font-sans shrink-0 w-[200px] sm:w-[220px] flex flex-col"
+                      style={{ scrollSnapAlign: 'start' }}
                     >
                       <div
-                        className="w-20 h-[58px] shrink-0 bg-panel-alt border overflow-hidden"
+                        className="w-full h-[120px] bg-panel-alt border overflow-hidden"
                         style={{
                           borderColor: isSel ? 'var(--brand)' : 'var(--rule-soft)',
                           boxShadow: isSel ? 'inset 0 0 0 2px var(--brand)' : 'none',
                         }}
                       >
-                        {tinyMap({ svgPath: a.svg_path, accent: isSel ? 'var(--brand)' : 'var(--ink-soft)' })}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <Mono className="text-[10px] text-ink-soft tracking-[.12em] uppercase">
-                          {new Date(a.datetime).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: CT })} · {a.sport_type}
-                        </Mono>
-                        <div className={['font-bold text-sm tracking-[-0.01em] mt-[3px] whitespace-nowrap overflow-hidden text-ellipsis', isSel ? 'text-brand' : 'text-ink'].join(' ')}>
-                          {a.name}
-                        </div>
-                        <Mono className="text-[11px] text-ink-soft mt-[3px]">
-                          {a.distance > 0 ? `${a.distance.toFixed(1)} mi` : '—'} · {a.minutes} min
-                        </Mono>
+                        {tinyMap({ svgPath: a.svg_path, svgViewBox: a.svg_view_box, accent: isSel ? 'var(--brand)' : 'var(--ink-soft)' })}
                       </div>
                       <div
-                        className="w-[18px] h-[18px] shrink-0 rounded-full border grid place-items-center"
-                        style={{
-                          borderWidth: '1.5px',
-                          borderColor: isSel ? 'var(--brand)' : 'var(--rule-soft)',
-                          background: isSel ? 'var(--brand)' : 'transparent',
-                        }}
+                        className="flex-1 p-2.5 pt-2 border border-t-0 flex flex-col gap-0.5"
+                        style={{ borderColor: isSel ? 'var(--brand)' : 'var(--rule-soft)' }}
                       >
-                        {isSel && <span className="w-2 h-2 rounded-full bg-panel" />}
+                        <Mono className="text-[10px] text-ink-soft tracking-[.12em] uppercase leading-tight">
+                          {new Date(a.datetime).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: CT })} · {a.sport_type}
+                        </Mono>
+                        <div className={['font-bold text-sm tracking-[-0.01em] mt-0.5 whitespace-nowrap overflow-hidden text-ellipsis', isSel ? 'text-brand' : 'text-ink'].join(' ')}>
+                          {a.name}
+                        </div>
+                        <div className="flex items-center justify-between mt-0.5">
+                          <Mono className="text-[11px] text-ink-soft">
+                            {a.distance > 0 ? `${a.distance.toFixed(1)} mi` : '—'} · {a.minutes} min
+                          </Mono>
+                          <div
+                            className="w-[14px] h-[14px] shrink-0 rounded-full border grid place-items-center"
+                            style={{
+                              borderWidth: '1.5px',
+                              borderColor: isSel ? 'var(--brand)' : 'var(--rule-soft)',
+                              background: isSel ? 'var(--brand)' : 'transparent',
+                            }}
+                          >
+                            {isSel && <span className="w-[6px] h-[6px] rounded-full bg-panel" />}
+                          </div>
+                        </div>
                       </div>
                     </button>
                   );
@@ -467,7 +672,7 @@ export default function StravaArt() {
             )}
           </section>
 
-          <section>
+          <section className="mt-8">
             <div className="flex justify-between items-baseline mb-[10px]">
               <h2 className="font-tight font-extrabold text-[22px] tracking-[-0.02em] m-0">Your submission</h2>
               {activeSub && (
@@ -480,56 +685,86 @@ export default function StravaArt() {
               )}
             </div>
             <Rule />
-            <div className="mt-[10px]">
-              <CompositionCanvas
-                path={currentPath}
-                rotation={rotation}
-                title={title}
-                visibility={visibility}
-                memberName={me?.name}
-                memberSection={me?.section}
-              />
-            </div>
-            <div className="mt-3 flex justify-between items-center py-[10px] px-3 bg-panel border border-rule-soft">
-              <Mono className="text-[10px] text-ink-soft tracking-[.14em] uppercase">Orient your route</Mono>
-              <div className="flex gap-2">
-                <RotateButton dir="ccw" onClick={rotL} />
-                <RotateButton dir="cw" onClick={rotR} />
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr,360px] gap-6 mt-[10px]">
+              <div>
+                <CompositionCanvas
+                  path={currentPath}
+                  svgViewBox={currentViewBox}
+                  rotation={rotation}
+                  title={title}
+                  visibility={visibility}
+                  memberName={me?.name}
+                  memberSection={me?.section}
+                  strokeColor={strokeColor}
+                  bgColor={bgColor}
+                  strokeWidth={strokeWidth}
+                  isOwner
+                />
+              </div>
+              <div>
+                <div className="py-[10px] px-3 bg-panel border border-rule-soft flex flex-col gap-2">
+                  <div className="flex justify-between items-center">
+                    <Mono className="text-[10px] text-ink-soft tracking-[.14em] uppercase">Orient your route</Mono>
+                    <Mono className="text-[10px] text-ink-soft tabular-nums">{((rotation % 360) + 360) % 360}°</Mono>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="359"
+                    step="1"
+                    value={((rotation % 360) + 360) % 360}
+                    onChange={(e) => setRotation(Number(e.target.value))}
+                    className="w-full accent-ink cursor-pointer"
+                    style={{ height: 2, accentColor: 'var(--ink)' }}
+                  />
+                </div>
+                <div className="mt-3.5 py-[10px] px-3 bg-panel border border-rule-soft">
+                  <ColorPicker
+                    strokeColor={strokeColor}
+                    bgColor={bgColor}
+                    onStrokeColor={setStrokeColor}
+                    onBgColor={setBgColor}
+                  />
+                </div>
+                <div className="mt-3.5">
+                  <StrokeWidthPicker value={strokeWidth} onChange={setStrokeWidth} />
+                </div>
+                <div className="mt-3.5">
+                  <Mono className="text-[10px] text-ink-soft tracking-[.14em] uppercase">Title your piece</Mono>
+                  <input
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder="Untitled"
+                    className="mt-1.5 py-[10px] px-3 w-full border border-rule bg-panel text-ink font-tight font-bold text-lg tracking-[-0.01em] outline-none box-border placeholder:text-ink-soft"
+                  />
+                </div>
+                <div className="mt-3.5">
+                  <VisibilityRadio value={visibility} onChange={setVisibility} />
+                </div>
+                <div className="flex gap-2.5 mt-4">
+                  <button
+                    onClick={handleSave}
+                    disabled={saving || !activityId}
+                    className="flex-1 py-[14px] px-5 bg-ink text-panel border-none font-tight font-bold text-sm tracking-[.06em] uppercase cursor-pointer disabled:opacity-50"
+                  >
+                    {saving ? 'Saving…' : activeSub ? 'Update artwork' : 'Submit artwork'}
+                  </button>
+                  {activeSub && (
+                    <button
+                      onClick={handleWithdraw}
+                      className="py-[14px] px-[18px] bg-transparent text-brand border border-brand font-tight font-bold text-sm tracking-[.06em] uppercase cursor-pointer"
+                    >
+                      Withdraw
+                    </button>
+                  )}
+                </div>
+                <Mono className="block mt-[10px] text-[11px] text-ink-soft">
+                  One submission per person, per week. You can revise until Sun 11:59pm.
+                </Mono>
               </div>
             </div>
-            <div className="mt-3.5">
-              <Mono className="text-[10px] text-ink-soft tracking-[.14em] uppercase">Title your piece</Mono>
-              <input
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                className="mt-1.5 py-[10px] px-3 w-full border border-rule bg-panel text-ink font-tight font-bold text-lg tracking-[-0.01em] outline-none box-border"
-              />
-            </div>
-            <div className="mt-3.5">
-              <VisibilityRadio value={visibility} onChange={setVisibility} />
-            </div>
-            <div className="flex gap-2.5 mt-4">
-              <button
-                onClick={handleSave}
-                disabled={saving || !activityId}
-                className="flex-1 py-[14px] px-5 bg-ink text-panel border-none font-tight font-bold text-sm tracking-[.06em] uppercase cursor-pointer disabled:opacity-50"
-              >
-                {saving ? 'Saving…' : activeSub ? 'Update artwork' : 'Submit artwork'}
-              </button>
-              {activeSub && (
-                <button
-                  onClick={handleWithdraw}
-                  className="py-[14px] px-[18px] bg-transparent text-brand border border-brand font-tight font-bold text-sm tracking-[.06em] uppercase cursor-pointer"
-                >
-                  Withdraw
-                </button>
-              )}
-            </div>
-            <Mono className="block mt-[10px] text-[11px] text-ink-soft">
-              One submission per person, per week. You can revise until Sun 11:59pm.
-            </Mono>
           </section>
-        </div>
+        </>
       )}
 
       <div className="mt-9">
@@ -554,7 +789,7 @@ export default function StravaArt() {
                   rowSep(i, wall.length, { base: 2, lg: 4 }),
                 ].join(' ')}
               >
-                <SubmissionTile s={s} onLike={handleToggleLike} />
+                <SubmissionTile s={s} onLike={handleToggleLike} isOwn={s.id === activeSub?.id} />
               </div>
             ))}
           </div>

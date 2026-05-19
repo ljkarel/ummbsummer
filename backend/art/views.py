@@ -93,6 +93,9 @@ class ArtSubmissionView(APIView):
                 'title': request.data.get('title', ''),
                 'rotation': request.data.get('rotation', 0),
                 'visibility': request.data.get('visibility', ArtSubmission.VISIBILITY_PUBLIC),
+                'stroke_color': request.data.get('strokeColor', ''),
+                'bg_color': request.data.get('bgColor', ''),
+                'stroke_width': request.data.get('strokeWidth', 2.8),
                 'is_withdrawn': False,
             }
         )
@@ -130,6 +133,12 @@ class ArtSubmissionDetailView(APIView):
             submission.rotation = request.data['rotation']
         if 'visibility' in request.data:
             submission.visibility = request.data['visibility']
+        if 'strokeColor' in request.data:
+            submission.stroke_color = request.data['strokeColor']
+        if 'bgColor' in request.data:
+            submission.bg_color = request.data['bgColor']
+        if 'strokeWidth' in request.data:
+            submission.stroke_width = request.data['strokeWidth']
 
         submission.save()
         return Response(MyArtSubmissionSerializer(submission).data)

@@ -21,5 +21,13 @@ def process_strava_webhook(event):
 
 
 @shared_task
+def sync_member_activities(member_id):
+    member = Member.objects.filter(pk=member_id, strava_auth__isnull=False).first()
+    if not member:
+        return
+    update_member_activities(member)
+
+
+@shared_task
 def update_activities():
     update_all_member_activities()

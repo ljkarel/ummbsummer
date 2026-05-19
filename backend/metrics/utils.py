@@ -1,5 +1,5 @@
 from django.db.models import Sum
-from django.utils.timezone import localdate
+from django.utils.timezone import is_aware, localdate, localtime
 
 from members.models import Section
 
@@ -8,7 +8,10 @@ from .models import CompetitionPeriod, SectionPeriodScore, compute_points
 
 def get_period_for_datetime(dt) -> CompetitionPeriod | None:
     """Return the CompetitionPeriod whose date range contains dt, or None."""
-    target_date = dt.date() if hasattr(dt, 'date') else dt
+    if hasattr(dt, 'date'):
+        target_date = localtime(dt).date() if is_aware(dt) else dt.date()
+    else:
+        target_date = dt
     return CompetitionPeriod.objects.filter(
         start_date__lte=target_date,
         end_date__gte=target_date,

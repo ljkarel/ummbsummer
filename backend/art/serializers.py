@@ -7,12 +7,13 @@ class ArtWallSubmissionSerializer(serializers.ModelSerializer):
     who = serializers.SerializerMethodField()
     section = serializers.SerializerMethodField()
     svg_path = serializers.SerializerMethodField()
+    svg_view_box = serializers.SerializerMethodField()
     likes = serializers.SerializerMethodField()
     liked_by_me = serializers.SerializerMethodField()
 
     class Meta:
         model = ArtSubmission
-        fields = ['id', 'who', 'section', 'title', 'svg_path', 'rotation', 'likes', 'liked_by_me']
+        fields = ['id', 'who', 'section', 'title', 'svg_path', 'svg_view_box', 'rotation', 'stroke_color', 'bg_color', 'stroke_width', 'likes', 'liked_by_me']
 
     def get_who(self, obj):
         if obj.visibility == ArtSubmission.VISIBILITY_ANONYMOUS:
@@ -29,6 +30,11 @@ class ArtWallSubmissionSerializer(serializers.ModelSerializer):
             return obj.activity.svg_path or ''
         return ''
 
+    def get_svg_view_box(self, obj):
+        if obj.activity:
+            return obj.activity.svg_view_box or '0 0 100 100'
+        return '0 0 100 100'
+
     def get_likes(self, obj):
         return obj.likes.count()
 
@@ -41,6 +47,7 @@ class ArtWallSubmissionSerializer(serializers.ModelSerializer):
 
 class MyArtSubmissionSerializer(serializers.ModelSerializer):
     svg_path = serializers.SerializerMethodField()
+    svg_view_box = serializers.SerializerMethodField()
     likes = serializers.SerializerMethodField()
     activity_id = serializers.SerializerMethodField()
     period_n = serializers.IntegerField(source='period.id', read_only=True)
@@ -49,7 +56,8 @@ class MyArtSubmissionSerializer(serializers.ModelSerializer):
         model = ArtSubmission
         fields = [
             'id', 'period_n', 'activity_id', 'title', 'rotation',
-            'visibility', 'is_withdrawn', 'svg_path', 'likes',
+            'stroke_color', 'bg_color', 'stroke_width',
+            'visibility', 'is_withdrawn', 'svg_path', 'svg_view_box', 'likes',
             'submitted_at', 'updated_at',
         ]
 
@@ -57,6 +65,11 @@ class MyArtSubmissionSerializer(serializers.ModelSerializer):
         if obj.activity:
             return obj.activity.svg_path or ''
         return ''
+
+    def get_svg_view_box(self, obj):
+        if obj.activity:
+            return obj.activity.svg_view_box or '0 0 100 100'
+        return '0 0 100 100'
 
     def get_likes(self, obj):
         return obj.likes.count()

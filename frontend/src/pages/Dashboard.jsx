@@ -570,7 +570,7 @@ export default function Dashboard() {
             {activities.slice(0, 4).map((a, i) =>
               <div key={a.activity_id} className={`px-[18px] pt-4 pb-[18px] ${colSep(i, { base: 1, sm: 2, lg: 4 })} ${rowSep(i, 4, { base: 1, sm: 2, lg: 4 })}`}>
                 <div className="aspect-[10/7] bg-panel-alt mb-3 border border-rule-soft overflow-hidden">
-                  <RouteMap svgPath={a.svg_path} />
+                  <RouteMap svgPath={a.svg_path} svgViewBox={a.svg_view_box} />
                 </div>
                 <div className="flex justify-between items-center mb-1">
                   <Mono className="text-[10px] text-ink-soft tracking-[.12em] uppercase">{fmtActivityDate(a.datetime)}</Mono>
@@ -583,7 +583,7 @@ export default function Dashboard() {
                   <div><div className="text-ink font-semibold">{a.elevation_gain > 0 ? `${Math.round(a.elevation_gain)} ft` : '—'}</div>elev</div>
                 </div>
                 <div className="mt-3 flex items-center justify-between">
-                  <Mono className="text-[11px] text-ink-soft">POINTS</Mono>
+                  <Mono className="text-[11px] text-ink-soft">{a.period_n ?? 'POINTS'}</Mono>
                   <Mono className="text-lg font-extrabold text-brand">+{a.points?.toFixed(1) ?? 0}</Mono>
                 </div>
               </div>

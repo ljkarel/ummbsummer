@@ -5,6 +5,7 @@ import { BottomNav } from '../components/layout/BottomNav.jsx';
 import { PageFooter } from '../components/layout/PageFooter.jsx';
 
 import { getRoster, getSections } from '../lib/api.js';
+import { colSep, rowSep } from '../utils/gridSep.js';
 
 function StatusDot({ status }) {
   const dotClass = status === 'connected' ? 'bg-good' : status === 'pending' ? 'bg-accent' : 'bg-ink-soft';
@@ -183,17 +184,10 @@ export default function Roster() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5">
           {members.map((m, i) => {
-            const cols = 5;
-            const lastRowStart = members.length - (members.length % cols || cols);
-            const isLastCol = i % cols === cols - 1;
-            const isLastRow = i >= lastRowStart;
             return (
               <div
                 key={`${m.name}-${i}`}
-                className={[
-                  !isLastCol ? 'border-r border-rule-soft' : '',
-                  !isLastRow ? 'border-b border-rule-soft' : '',
-                ].join(' ')}
+                className={`${colSep(i, { base: 1, sm: 3, lg: 5 })} ${rowSep(i, members.length, { base: 1, sm: 3, lg: 5 })}`}
               >
                 <MemberCard m={m} />
               </div>

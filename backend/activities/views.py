@@ -1,3 +1,5 @@
+from zoneinfo import ZoneInfo
+
 from django.http import FileResponse, JsonResponse
 from django.shortcuts import get_object_or_404
 from rest_framework.exceptions import NotFound, PermissionDenied
@@ -47,6 +49,31 @@ class MemberSportTypesView(APIView):
         choices = dict(Activity._meta.get_field('sport_type').choices)
         sports = [{'value': v, 'label': choices.get(v, v)} for v in values]
         return JsonResponse({'sports': sports})
+
+
+class ActivityHeatmapView(APIView):
+    def get(self, request):
+        chicago = ZoneInfo('America/Chicago')
+        activities = (
+            Activity.objects
+            .filter(member=request.user.member)
+            .exclude(period=None)
+            .select_related('period')
+            .values('datetime', 'minutes', 'period__name')
+        )
+        heatmap = {}
+        for a in activities:
+            period_name = a['period__name']
+            try:
+                week_idx = int(period_name.replace('Period ', '').replace('Week ', '')) - 1
+            except (ValueError, AttributeError):
+                continue
+            if week_idx < 0 or week_idx > 7:
+                continue
+            day_idx = a['datetime'].astimezone(chicago).weekday()  # Mon=0, Sun=6
+            key = f'{week_idx}-{day_idx}'
+            heatmap[key] = heatmap.get(key, 0) + a['minutes']
+        return JsonResponse({'heatmap': heatmap})
 
 
 class ActivityMapView(APIView):

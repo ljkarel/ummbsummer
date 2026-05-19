@@ -63,6 +63,9 @@ class ArtSubmission(models.Model):
         choices=VISIBILITY_CHOICES,
         default=VISIBILITY_PUBLIC,
     )
+    stroke_color = models.CharField(max_length=20, blank=True, default='')
+    bg_color = models.CharField(max_length=20, blank=True, default='')
+    stroke_width = models.FloatField(default=2.8)
     is_withdrawn = models.BooleanField(default=False)
     submitted_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

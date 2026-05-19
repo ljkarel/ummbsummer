@@ -13,7 +13,7 @@ from rest_framework.views import APIView
 
 from members.models import StravaAuth
 
-from .tasks import process_strava_webhook
+from .tasks import process_strava_webhook, sync_member_activities
 from .utils import get_profile_picture, member_in_club, token_exchange, valid_scope
 
 WEBHOOK_ENDPOINT_TOKEN = os.getenv('STRAVA_WEBHOOK_ENDPOINT_TOKEN')
@@ -99,7 +99,7 @@ class StravaCallbackView(APIView):
 
         member = request.user.member
 
-        strava_auth, _ = StravaAuth.objects.update_or_create(
+        StravaAuth.objects.update_or_create(
             strava_id=token_data['athlete']['id'],
             defaults={
                 'member': member,
@@ -111,8 +111,7 @@ class StravaCallbackView(APIView):
             }
         )
 
-        member.strava_auth = strava_auth
-        member.save()
+        sync_member_activities.delay(member.id)
 
         return redirect(f'{settings.FRONTEND_URL}/onboarding/profile')
 

@@ -129,18 +129,20 @@ export function TrendHeader() {
   );
 }
 
-export function RouteMap({ svgPath }) {
+export function RouteMap({ svgPath, svgViewBox = '0 0 100 100' }) {
   return (
-    <svg viewBox="0 0 100 90" width="100%" height="100%" preserveAspectRatio="none" className="block">
-      {[14, 28, 42, 56, 70].map((y) => (
-        <line key={y} x1="0" y1={y} x2="100" y2={y - 6} stroke="var(--ink)" strokeOpacity=".06" strokeWidth=".3" />
-      ))}
-      {[20, 50, 80].map((x) => (
-        <line key={x} x1={x} y1="0" x2={x - 6} y2="90" stroke="var(--ink)" strokeOpacity=".06" strokeWidth=".3" />
-      ))}
-      <path d={svgPath || ''} fill="none" stroke="var(--brand)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
-      <circle cx="14" cy="60" r="2" fill="var(--brand)" />
-      <circle cx="60" cy="80" r="2.4" fill="var(--ink)" stroke="var(--panel-alt)" strokeWidth="1" />
-    </svg>
+    <div className="relative w-full h-full">
+      <svg viewBox="0 0 100 100" width="100%" height="100%" preserveAspectRatio="none" className="absolute inset-0">
+        {Array.from({ length: 11 }).map((_, i) => (
+          <line key={`h${i}`} x1="0" y1={i * 10} x2="100" y2={i * 10} stroke="var(--ink)" strokeOpacity=".05" strokeWidth=".5" />
+        ))}
+        {Array.from({ length: 11 }).map((_, i) => (
+          <line key={`v${i}`} x1={i * 10} y1="0" x2={i * 10} y2="100" stroke="var(--ink)" strokeOpacity=".05" strokeWidth=".5" />
+        ))}
+      </svg>
+      <svg viewBox={svgViewBox} width="100%" height="100%" preserveAspectRatio="xMidYMid meet" className="absolute inset-0 block">
+        <path d={svgPath || ''} fill="none" stroke="var(--brand)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+      </svg>
+    </div>
   );
 }
