@@ -14,10 +14,18 @@ def process_strava_webhook(event):
         print(f"Strava ID {strava_id} not registered with application, skipping...")
         return
 
-    if event.get('object_type') == 'activity':
-        print(f"{member} updated an activity.")
-        print(f"Action: {event.get('aspect_type')}")
-        # update_member_activities(member)
+    if event.get('object_type') != 'activity':
+        return
+
+    aspect_type = event.get('aspect_type')
+    activity_id = event.get('object_id')
+
+    if aspect_type == 'delete':
+        print(f"Activity {activity_id} deleted for {member} — not handled yet.")
+        return
+
+    print(f"{member} {aspect_type}d activity {activity_id}, refetching all activities...")
+    update_member_activities(member)
 
 
 @shared_task

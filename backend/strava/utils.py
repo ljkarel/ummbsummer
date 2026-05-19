@@ -3,6 +3,7 @@ import os
 
 import requests
 from dateutil.parser import parse
+from django.conf import settings
 from django.db.models import Max, Min
 
 from activities.models import Activity
@@ -196,7 +197,7 @@ def create_strava_push_subscription():
     payload = {
         'client_id': os.getenv('STRAVA_CLIENT_ID'),
         'client_secret': os.getenv('STRAVA_CLIENT_SECRET'),
-        'callback_url': f'https://5d972e479cdc.ngrok-free.app/api/strava/webhooks/{os.getenv('STRAVA_WEBHOOK_ENDPOINT_TOKEN')}/',
+        'callback_url': f'{settings.BACKEND_URL}/api/strava/webhooks/',
         'verify_token': os.getenv('STRAVA_WEBHOOK_VERIFY_TOKEN'),
     }
 
@@ -204,10 +205,10 @@ def create_strava_push_subscription():
     # print(response)
 
     if response.status_code == 201:
-        print("✅ Subscription created successfully:")
+        print("Subscription created successfully:")
         print(response.json())
     else:
-        print(f"❌ Failed to create subscription: {response.status_code}")
+        print(f"Failed to create subscription: {response.status_code}")
         print(response.text)
 
 
@@ -224,14 +225,14 @@ def list_strava_push_subscription():
     if response.status_code == 200:
         subscriptions = response.json()
         if not subscriptions:
-            print("ℹ️ No active Strava webhook subscriptions found.")
+            print("No active Strava webhook subscriptions found.")
         else:
-            print("✅ Active Strava webhook subscriptions:")
+            print("Active Strava webhook subscriptions:")
             for sub in subscriptions:
                 print(f"- ID: {sub['id']}, Callback URL: {sub['callback_url']}")
         return subscriptions
     else:
-        print(f"❌ Failed to list subscriptions: {response.status_code}")
+        print(f"Failed to list subscriptions: {response.status_code}")
         print(response.text)
         return []
 
@@ -248,7 +249,7 @@ def delete_strava_subscription(subscription_id: int):
     )
 
     if response.status_code == 204:
-        print(f"✅ Successfully deleted subscription {subscription_id}")
+        print(f"Successfully deleted subscription {subscription_id}")
     else:
-        print(f"❌ Failed to delete subscription {subscription_id}: {response.status_code}")
+        print(f"Failed to delete subscription {subscription_id}: {response.status_code}")
         print(response.text)
