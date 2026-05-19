@@ -1,5 +1,4 @@
 import { createBrowserRouter, Navigate, Outlet } from 'react-router-dom';
-import { useSwipeNavigation } from './hooks/useSwipeNavigation.js';
 import { SettingsProvider, useSettings } from './contexts/SettingsContext.jsx';
 import { SettingsDrawer } from './components/SettingsDrawer.jsx';
 import Dashboard from './pages/Dashboard.jsx';
@@ -17,9 +16,8 @@ import { useAuth } from './contexts/AuthContext.jsx';
 
 function AuthLayout() {
   const { open, setOpen } = useSettings();
-  const swipe = useSwipeNavigation();
   return (
-    <div {...swipe} style={{ touchAction: 'pan-y' }}>
+    <div>
       <Outlet />
       <SettingsDrawer open={open} onClose={() => setOpen(false)} />
     </div>

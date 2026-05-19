@@ -429,7 +429,6 @@ function SubmissionControls({
           <div
             ref={carouselRef}
             className="flex overflow-x-auto gap-3 pb-3 mt-[10px]"
-            data-no-swipe
             style={{ scrollSnapType: 'x mandatory', scrollbarWidth: 'none', msOverflowStyle: 'none', touchAction: 'pan-x' }}
           >
             {activities.map((a) => {
