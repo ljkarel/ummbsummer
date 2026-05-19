@@ -1,5 +1,6 @@
 import hashlib
 import hmac
+import logging
 import os
 import time
 from datetime import UTC, datetime, timezone
@@ -27,6 +28,8 @@ CLIENT_ID = os.getenv('STRAVA_CLIENT_ID')
 CLIENT_SECRET = os.getenv('STRAVA_CLIENT_SECRET')
 
 OAUTH_URL = 'https://www.strava.com/oauth/authorize'
+
+logger = logging.getLogger(__name__)
 
 
 class StravaStatusView(APIView):
@@ -155,8 +158,11 @@ class StravaWebhooksView(APIView):
         return Response({"hub.challenge": challenge})
 
     def post(self, request):
+        logger.warning("Received Strava webhook request")
+        logger.warning("Headers: %s", dict(request.headers))
         if not _verify_strava_signature(request):
             raise PermissionDenied("Invalid signature.")
+        logger.warning("Received Strava webhook: %s", request)
 
         if request.data['subscription_id'] != int(WEBHOOK_SUBSCRIPTION_ID):
             raise PermissionDenied("Invalid subscription ID.")
