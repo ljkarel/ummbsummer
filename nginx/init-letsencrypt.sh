@@ -26,17 +26,17 @@ curl -s https://raw.githubusercontent.com/certbot/certbot/master/certbot/certbot
 
 echo "### Creating dummy certificate for $DOMAIN..."
 mkdir -p "$DATA_PATH/conf/live/$DOMAIN"
-docker compose -f docker-compose.yml -f docker-compose.prod.yml run --rm --entrypoint "\
+docker compose --profile prod run --rm --entrypoint "\
     openssl req -x509 -nodes -newkey rsa:4096 -days 1 \
         -keyout '/etc/letsencrypt/live/$DOMAIN/privkey.pem' \
         -out    '/etc/letsencrypt/live/$DOMAIN/fullchain.pem' \
         -subj '/CN=localhost'" certbot
 
 echo "### Starting nginx with dummy certificate..."
-docker compose -f docker-compose.yml -f docker-compose.prod.yml up --detach --wait nginx
+docker compose --profile prod up --detach --wait nginx
 
 echo "### Deleting dummy certificate..."
-docker compose -f docker-compose.yml -f docker-compose.prod.yml run --rm --entrypoint "\
+docker compose --profile prod run --rm --entrypoint "\
     rm -rf /etc/letsencrypt/live/$DOMAIN && \
     rm -rf /etc/letsencrypt/archive/$DOMAIN && \
     rm -rf /etc/letsencrypt/renewal/$DOMAIN.conf" certbot
@@ -47,16 +47,15 @@ if [ "$STAGING" = "1" ]; then
 fi
 
 echo "### Requesting Let's Encrypt certificate for $DOMAIN..."
-docker compose -f docker-compose.yml -f docker-compose.prod.yml run --rm --entrypoint "\
+docker compose --profile prod run --rm --entrypoint "\
     certbot certonly --webroot -w /var/www/certbot \
         $STAGING_ARG \
         --email $EMAIL \
         -d $DOMAIN \
-        --rsa-key-size 4096 \
         --agree-tos \
         --force-renewal" certbot
 
 echo "### Reloading nginx..."
-docker compose -f docker-compose.yml -f docker-compose.prod.yml exec nginx nginx -s reload
+docker compose --profile prod exec nginx nginx -s reload
 
 echo "### Done. Certificates issued for $DOMAIN."
