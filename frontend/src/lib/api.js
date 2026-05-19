@@ -88,4 +88,10 @@ export const deleteArtSub = (id) =>
 export const toggleArtLike = (id) =>
   apiFetch(`/api/art/submissions/${id}/like/`, { method: 'POST' });
 
+// Open art
+export const getOpenWall = () => apiFetch('/api/art/open-wall/');
+export const getMyOpenSubs = () => apiFetch('/api/art/open-submissions/me/');
+export const createOpenSub = (body) =>
+  apiFetch('/api/art/open-submissions/', { method: 'POST', body });
+
 export { BASE };

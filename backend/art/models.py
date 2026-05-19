@@ -41,9 +41,11 @@ class ArtSubmission(models.Model):
     )
     period = models.ForeignKey(
         'metrics.CompetitionPeriod',
+        null=True,
+        blank=True,
         on_delete=models.CASCADE,
         related_name='art_submissions',
-        help_text="The competition period this submission is for."
+        help_text="The competition period this submission is for. Null for open (non-weekly) submissions."
     )
     activity = models.ForeignKey(
         'activities.Activity',
@@ -75,7 +77,8 @@ class ArtSubmission(models.Model):
         unique_together = ('member', 'period')
 
     def __str__(self):
-        return f"{self.member} — {self.period.name} — {self.title}"
+        period_str = self.period.name if self.period_id else 'Open'
+        return f"{self.member} — {period_str} — {self.title}"
 
     @property
     def likes_count(self):

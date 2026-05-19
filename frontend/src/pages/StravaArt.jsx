@@ -11,6 +11,7 @@ import {
   getPeriods, getMe,
   getArtWall, getMyArtSub, getActivities,
   createArtSub, patchArtSub, deleteArtSub, toggleArtLike,
+  getOpenWall, getMyOpenSubs, createOpenSub,
 } from '../lib/api.js';
 
 const CT = 'America/Chicago';
@@ -77,6 +78,30 @@ function WeekNav({ periods, livePeriodId, selectedPeriodId, onSelect }) {
           );
         })}
       </div>
+    </div>
+  );
+}
+
+function TabSwitcher({ tab, onChange }) {
+  return (
+    <div className="flex border border-rule-soft w-fit">
+      {['weekly', 'open'].map((t, i) => {
+        const isSel = tab === t;
+        const label = t === 'weekly' ? 'Weekly' : 'Open';
+        return (
+          <button
+            key={t}
+            onClick={() => onChange(t)}
+            className={[
+              'font-mono text-[10px] tracking-[.12em] uppercase py-[7px] px-4 border-none cursor-pointer',
+              i === 0 ? 'border-r border-rule-soft' : '',
+              isSel ? 'bg-ink text-panel font-bold' : 'bg-transparent text-ink-soft font-medium',
+            ].join(' ')}
+          >
+            {label}
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -353,8 +378,213 @@ function SubmissionTile({ s, onLike, isOwn }) {
   );
 }
 
-export default function StravaArt() {
+// ---------------------------------------------------------------------------
+// Shared submission form controls (used by both weekly and open tabs)
+// ---------------------------------------------------------------------------
+function SubmissionControls({
+  activities, activityId, onActivityId,
+  rotation, onRotation,
+  strokeColor, onStrokeColor,
+  bgColor, onBgColor,
+  strokeWidth, onStrokeWidth,
+  title, onTitle,
+  visibility, onVisibility,
+  saving, onSave, onWithdraw,
+  activeSub, submittedAt,
+  saveLabel,
+  footerNote,
+  carouselRef,
+  activityDateLabel,
+}) {
+  const selectedActivity = activities.find((a) => a.activity_id === activityId);
+  const currentPath = selectedActivity?.svg_path ?? activeSub?.svg_path ?? '';
+  const currentViewBox = selectedActivity?.svg_view_box ?? activeSub?.svg_view_box ?? '0 0 100 100';
 
+  return (
+    <>
+      {/* Activity picker */}
+      <section className="mt-6">
+        <div className="flex justify-between items-baseline mb-[10px]">
+          <h2 className="font-tight font-extrabold text-[22px] tracking-[-0.02em] m-0">Pick an activity</h2>
+          <div className="flex items-center gap-3">
+            <Mono className="text-[11px] text-ink-soft tracking-[.1em] uppercase">{activities.length} {activityDateLabel}</Mono>
+            <div className="hidden sm:flex gap-1">
+              <button
+                onClick={() => carouselRef.current?.scrollBy({ left: -240, behavior: 'smooth' })}
+                className="w-7 h-7 border border-rule-soft bg-panel flex items-center justify-center text-ink-soft hover:text-ink cursor-pointer font-sans text-base leading-none"
+                aria-label="Scroll left"
+              >‹</button>
+              <button
+                onClick={() => carouselRef.current?.scrollBy({ left: 240, behavior: 'smooth' })}
+                className="w-7 h-7 border border-rule-soft bg-panel flex items-center justify-center text-ink-soft hover:text-ink cursor-pointer font-sans text-base leading-none"
+                aria-label="Scroll right"
+              >›</button>
+            </div>
+          </div>
+        </div>
+        <Rule />
+        {activities.length === 0 ? (
+          <div className="py-10 text-center text-ink-soft text-sm">No activities recorded yet.</div>
+        ) : (
+          <div
+            ref={carouselRef}
+            className="flex overflow-x-auto gap-3 pb-3 mt-[10px]"
+            data-no-swipe
+            style={{ scrollSnapType: 'x mandatory', scrollbarWidth: 'none', msOverflowStyle: 'none', touchAction: 'pan-x' }}
+          >
+            {activities.map((a) => {
+              const isSel = activityId === a.activity_id;
+              return (
+                <button
+                  key={a.id}
+                  onClick={() => { onActivityId(a.activity_id); onRotation(0); }}
+                  className="text-left border-none bg-transparent p-0 cursor-pointer font-sans shrink-0 w-[200px] sm:w-[220px] flex flex-col"
+                  style={{ scrollSnapAlign: 'start' }}
+                >
+                  <div
+                    className="w-full h-[120px] bg-panel-alt border overflow-hidden"
+                    style={{
+                      borderColor: isSel ? 'var(--brand)' : 'var(--rule-soft)',
+                      boxShadow: isSel ? 'inset 0 0 0 2px var(--brand)' : 'none',
+                    }}
+                  >
+                    {tinyMap({ svgPath: a.svg_path, svgViewBox: a.svg_view_box, accent: isSel ? 'var(--brand)' : 'var(--ink-soft)' })}
+                  </div>
+                  <div
+                    className="flex-1 p-2.5 pt-2 border border-t-0 flex flex-col gap-0.5"
+                    style={{ borderColor: isSel ? 'var(--brand)' : 'var(--rule-soft)' }}
+                  >
+                    <Mono className="text-[10px] text-ink-soft tracking-[.12em] uppercase leading-tight">
+                      {new Date(a.datetime).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: CT })} · {a.sport_type}
+                    </Mono>
+                    <div className={['font-bold text-sm tracking-[-0.01em] mt-0.5 whitespace-nowrap overflow-hidden text-ellipsis', isSel ? 'text-brand' : 'text-ink'].join(' ')}>
+                      {a.name}
+                    </div>
+                    <div className="flex items-center justify-between mt-0.5">
+                      <Mono className="text-[11px] text-ink-soft">
+                        {a.distance > 0 ? `${a.distance.toFixed(1)} mi` : '—'} · {a.minutes} min
+                      </Mono>
+                      <div
+                        className="w-[14px] h-[14px] shrink-0 rounded-full border grid place-items-center"
+                        style={{
+                          borderWidth: '1.5px',
+                          borderColor: isSel ? 'var(--brand)' : 'var(--rule-soft)',
+                          background: isSel ? 'var(--brand)' : 'transparent',
+                        }}
+                      >
+                        {isSel && <span className="w-[6px] h-[6px] rounded-full bg-panel" />}
+                      </div>
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
+      {/* Composition */}
+      <section className="mt-8">
+        <div className="flex justify-between items-baseline mb-[10px]">
+          <h2 className="font-tight font-extrabold text-[22px] tracking-[-0.02em] m-0">Your submission</h2>
+          {activeSub && submittedAt && (
+            <div className="inline-flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-good" />
+              <Mono className="text-[10px] text-ink-soft tracking-[.12em] uppercase">
+                Submitted · {fmtDate(submittedAt)}
+              </Mono>
+            </div>
+          )}
+        </div>
+        <Rule />
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr,360px] gap-6 mt-[10px]">
+          <div>
+            <CompositionCanvas
+              path={currentPath}
+              svgViewBox={currentViewBox}
+              rotation={rotation}
+              title={title}
+              visibility={visibility}
+              strokeColor={strokeColor}
+              bgColor={bgColor}
+              strokeWidth={strokeWidth}
+              isOwner
+            />
+          </div>
+          <div>
+            <div className="py-[10px] px-3 bg-panel border border-rule-soft flex flex-col gap-2">
+              <div className="flex justify-between items-center">
+                <Mono className="text-[10px] text-ink-soft tracking-[.14em] uppercase">Orient your route</Mono>
+                <Mono className="text-[10px] text-ink-soft tabular-nums">{((rotation % 360) + 360) % 360}°</Mono>
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="359"
+                step="1"
+                value={((rotation % 360) + 360) % 360}
+                onChange={(e) => onRotation(Number(e.target.value))}
+                className="w-full accent-ink cursor-pointer"
+                style={{ height: 2, accentColor: 'var(--ink)' }}
+              />
+            </div>
+            <div className="mt-3.5 py-[10px] px-3 bg-panel border border-rule-soft">
+              <ColorPicker
+                strokeColor={strokeColor}
+                bgColor={bgColor}
+                onStrokeColor={onStrokeColor}
+                onBgColor={onBgColor}
+              />
+            </div>
+            <div className="mt-3.5">
+              <StrokeWidthPicker value={strokeWidth} onChange={onStrokeWidth} />
+            </div>
+            <div className="mt-3.5">
+              <Mono className="text-[10px] text-ink-soft tracking-[.14em] uppercase">Title your piece</Mono>
+              <input
+                value={title}
+                onChange={(e) => onTitle(e.target.value)}
+                placeholder="Untitled"
+                className="mt-1.5 py-[10px] px-3 w-full border border-rule bg-panel text-ink font-tight font-bold text-lg tracking-[-0.01em] outline-none box-border placeholder:text-ink-soft"
+              />
+            </div>
+            <div className="mt-3.5">
+              <VisibilityRadio value={visibility} onChange={onVisibility} />
+            </div>
+            <div className="flex gap-2.5 mt-4">
+              <button
+                onClick={onSave}
+                disabled={saving || !activityId}
+                className="flex-1 py-[14px] px-5 bg-ink text-panel border-none font-tight font-bold text-sm tracking-[.06em] uppercase cursor-pointer disabled:opacity-50"
+              >
+                {saving ? 'Saving…' : saveLabel}
+              </button>
+              {onWithdraw && activeSub && (
+                <button
+                  onClick={onWithdraw}
+                  className="py-[14px] px-[18px] bg-transparent text-brand border border-brand font-tight font-bold text-sm tracking-[.06em] uppercase cursor-pointer"
+                >
+                  Withdraw
+                </button>
+              )}
+            </div>
+            {footerNote && (
+              <Mono className="block mt-[10px] text-[11px] text-ink-soft">{footerNote}</Mono>
+            )}
+          </div>
+        </div>
+      </section>
+    </>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Page
+// ---------------------------------------------------------------------------
+export default function StravaArt() {
+  const [tab, setTab] = useState('weekly');
+
+  // — Weekly state —
   const [me, setMe] = useState(null);
   const [periods, setPeriods] = useState([]);
   const [livePeriodId, setLivePeriodId] = useState(null);
@@ -364,7 +594,6 @@ export default function StravaArt() {
   const [periodActivities, setPeriodActivities] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Submission form state
   const [activityId, setActivityId] = useState(null);
   const [rotation, setRotation] = useState(0);
   const [title, setTitle] = useState('');
@@ -375,6 +604,25 @@ export default function StravaArt() {
   const [saving, setSaving] = useState(false);
   const carouselRef = useRef(null);
 
+  // — Open state —
+  const [openActivities, setOpenActivities] = useState([]);
+  const [openWall, setOpenWall] = useState([]);
+  const [myOpenSubs, setMyOpenSubs] = useState([]);
+  const openLoaded = useRef(false);
+  const [openLoading, setOpenLoading] = useState(false);
+
+  const [openActivityId, setOpenActivityId] = useState(null);
+  const [openRotation, setOpenRotation] = useState(0);
+  const [openTitle, setOpenTitle] = useState('');
+  const [openVisibility, setOpenVisibility] = useState('public');
+  const [openStrokeColor, setOpenStrokeColor] = useState('');
+  const [openBgColor, setOpenBgColor] = useState('');
+  const [openStrokeWidth, setOpenStrokeWidth] = useState(2.8);
+  const [editingOpenSubId, setEditingOpenSubId] = useState(null);
+  const [openSaving, setOpenSaving] = useState(false);
+  const openCarouselRef = useRef(null);
+
+  // Load weekly data
   useEffect(() => {
     Promise.all([getPeriods(), getMe()]).then(([periodsData, meData]) => {
       setMe(meData);
@@ -426,6 +674,24 @@ export default function StravaArt() {
     });
   }, [selectedPeriodId, periods]);
 
+  // Load open data (lazy — only on first switch to open tab)
+  useEffect(() => {
+    if (tab !== 'open' || openLoaded.current) return;
+    openLoaded.current = true;
+    setOpenLoading(true);
+    Promise.all([
+      getOpenWall(),
+      getMyOpenSubs(),
+      getActivities({ page_size: 500 }),
+    ]).then(([wall, mySubs, acts]) => {
+      setOpenWall(wall.submissions ?? []);
+      setMyOpenSubs(mySubs ?? []);
+      setOpenActivities(acts.results ?? []);
+      setOpenLoading(false);
+    });
+  }, [tab]);
+
+  // Weekly computed values
   const wall = useMemo(() => {
     if (!wallData) return [];
     const mySubId = mySub && !mySub.is_withdrawn ? mySub.id : null;
@@ -523,23 +789,127 @@ export default function StravaArt() {
     }
   }
 
+  // Open tab handlers
+  function resetOpenForm() {
+    setOpenActivityId(null);
+    setOpenRotation(0);
+    setOpenTitle('');
+    setOpenVisibility('public');
+    setOpenStrokeColor('');
+    setOpenBgColor('');
+    setOpenStrokeWidth(2.8);
+    setEditingOpenSubId(null);
+  }
+
+  function handleEditOpenSub(sub) {
+    setEditingOpenSubId(sub.id);
+    setOpenActivityId(sub.activity_id ? Number(sub.activity_id) : null);
+    setOpenRotation(sub.rotation ?? 0);
+    setOpenTitle(sub.title ?? '');
+    setOpenVisibility(sub.visibility ?? 'public');
+    setOpenStrokeColor(sub.stroke_color ?? '');
+    setOpenBgColor(sub.bg_color ?? '');
+    setOpenStrokeWidth(sub.stroke_width ?? 2.8);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  async function handleDeleteOpenSub(sub) {
+    try {
+      await deleteArtSub(sub.id);
+      setMyOpenSubs((prev) => prev.filter((s) => s.id !== sub.id));
+      setOpenWall((prev) => prev.filter((s) => s.id !== sub.id));
+      if (editingOpenSubId === sub.id) resetOpenForm();
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  async function handleSaveOpen() {
+    setOpenSaving(true);
+    const savedRotation = ((openRotation % 360) + 360) % 360;
+    const body = {
+      activityId: openActivityId,
+      title: openTitle,
+      rotation: savedRotation,
+      visibility: openVisibility,
+      strokeColor: openStrokeColor,
+      bgColor: openBgColor,
+      strokeWidth: openStrokeWidth,
+    };
+    try {
+      let updated;
+      if (editingOpenSubId) {
+        updated = await patchArtSub(editingOpenSubId, body);
+        setMyOpenSubs((prev) => prev.map((s) => s.id === updated.id ? updated : s));
+      } else {
+        updated = await createOpenSub(body);
+        setMyOpenSubs((prev) => [updated, ...prev]);
+      }
+      // Update open wall optimistically
+      const wallEntry = {
+        id: updated.id,
+        svg_path: updated.svg_path,
+        svg_view_box: updated.svg_view_box,
+        rotation: updated.rotation,
+        stroke_color: updated.stroke_color,
+        bg_color: updated.bg_color,
+        stroke_width: updated.stroke_width,
+        title: updated.title,
+        who: updated.visibility === 'anonymous' ? null : me?.name,
+        section: me?.section,
+        likes: openWall.find((s) => s.id === updated.id)?.likes ?? 0,
+        liked_by_me: false,
+      };
+      if (updated.visibility === 'private') {
+        setOpenWall((prev) => prev.filter((s) => s.id !== updated.id));
+      } else {
+        setOpenWall((prev) => {
+          const existing = prev.find((s) => s.id === updated.id);
+          return existing
+            ? prev.map((s) => s.id === updated.id ? wallEntry : s)
+            : [wallEntry, ...prev];
+        });
+      }
+      resetOpenForm();
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setOpenSaving(false);
+    }
+  }
+
+  async function handleToggleOpenLike(s) {
+    setOpenWall((prev) =>
+      prev.map((x) => x.id === s.id ? { ...x, liked_by_me: !x.liked_by_me, likes: x.likes + (x.liked_by_me ? -1 : 1) } : x)
+    );
+    try {
+      const result = await toggleArtLike(s.id);
+      setOpenWall((prev) =>
+        prev.map((x) => x.id === s.id ? { ...x, liked_by_me: result.liked, likes: result.likesCount } : x)
+      );
+    } catch {
+      setOpenWall((prev) => prev.map((x) => (x.id === s.id ? s : x)));
+    }
+  }
+
   const selectedPeriodObj = periods.find((p) => p.id === selectedPeriodId);
   const isSelectedLive = selectedPeriodId === livePeriodId;
   const activeSub = mySub && !mySub.is_withdrawn ? mySub : null;
 
-  const selectedActivity = periodActivities.find((a) => a.activity_id === activityId);
-  const currentPath = selectedActivity?.svg_path ?? activeSub?.svg_path ?? '';
-  const currentViewBox = selectedActivity?.svg_view_box ?? activeSub?.svg_view_box ?? '0 0 100 100';
-
   const selectedPeriodIdx = periods.findIndex((p) => p.id === selectedPeriodId);
   const selectedPeriodLabel = selectedPeriodIdx >= 0 ? `WK ${String(selectedPeriodIdx + 1).padStart(2, '0')}` : '';
-
-
 
   const theme = wallData?.theme ?? null;
   const dates = selectedPeriodObj
     ? fmtPeriodDates(selectedPeriodObj.start_date, selectedPeriodObj.end_date)
     : '';
+
+  const openWallPublic = useMemo(() => {
+    const myOpenSubIds = new Set(myOpenSubs.map((s) => s.id));
+    return [...openWall]
+      .filter((s) => !(myOpenSubIds.has(s.id) && s.visibility === 'private'))
+      .sort((a, b) => b.likes - a.likes);
+  }, [openWall, myOpenSubs]);
 
   return (
     <div className="w-full min-h-screen bg-bg text-ink font-sans px-9 pt-3 pb-20 relative" data-page-root>
@@ -548,253 +918,277 @@ export default function StravaArt() {
       {/* Hero grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-end py-[26px] pb-[22px]">
         <div>
-          <div className="flex items-center gap-2.5 mb-1.5 flex-wrap">
-            <Mono className="text-[11px] text-ink-soft tracking-[.18em] uppercase">
-              {selectedPeriodLabel} · Artwork brief{dates ? ` · ${dates}` : ''}
-            </Mono>
-            {selectedPeriodObj && (
-              <Tag t={isSelectedLive ? 'OPEN' : 'CLOSED'} className={isSelectedLive ? 'bg-brand text-panel' : 'bg-ink-soft text-panel'} />
-            )}
-          </div>
-          <h1 className="font-tight font-extrabold text-[56px] leading-[1.02] tracking-[-0.035em] mt-1 mb-0" style={{ textWrap: 'balance' }}>
-            {theme ? themeHeading(theme) : <span className="text-ink-soft">Loading…</span>}
-          </h1>
-          <div className="mt-3.5 text-sm leading-[1.45] text-ink-soft max-w-[580px]">
-            {isSelectedLive ? (
-              <>Pick one of your activities from this week whose route traces the shape. Rotate it to taste — the theme is the only constraint. Submissions close <strong className="text-ink">Sun 11:59pm</strong>.</>
-            ) : (
-              <>This week's window is closed. Browse what the band submitted below.</>
-            )}
-          </div>
-          <div className="mt-3.5 py-[10px] px-3 bg-panel border border-rule-soft flex items-start gap-2.5 max-w-[580px]" style={{ borderLeft: '3px solid var(--brand)' }}>
-            <Mono className="text-[10px] text-brand tracking-[.18em] uppercase whitespace-nowrap pt-0.5">Be cool ·</Mono>
-            <div className="text-xs leading-[1.45] text-ink-soft">
-              Submissions must be <strong className="text-ink">appropriate and on-theme</strong>. Anything off-theme, offensive, or otherwise inappropriate is subject to removal by program leaders.
-            </div>
-          </div>
+          {tab === 'weekly' ? (
+            <>
+              <div className="flex items-center gap-2.5 mb-1.5 flex-wrap">
+                <Mono className="text-[11px] text-ink-soft tracking-[.18em] uppercase">
+                  {selectedPeriodLabel} · Artwork brief{dates ? ` · ${dates}` : ''}
+                </Mono>
+                {selectedPeriodObj && (
+                  <Tag t={isSelectedLive ? 'OPEN' : 'CLOSED'} className={isSelectedLive ? 'bg-brand text-panel' : 'bg-ink-soft text-panel'} />
+                )}
+              </div>
+              <h1 className="font-tight font-extrabold text-[56px] leading-[1.02] tracking-[-0.035em] mt-1 mb-0" style={{ textWrap: 'balance' }}>
+                {theme ? themeHeading(theme) : <span className="text-ink-soft">Loading…</span>}
+              </h1>
+              <div className="mt-3.5 text-sm leading-[1.45] text-ink-soft max-w-[580px]">
+                {isSelectedLive ? (
+                  <>Pick one of your activities from this week whose route traces the shape. Rotate it to taste — the theme is the only constraint. Submissions close <strong className="text-ink">Sun 11:59pm</strong>.</>
+                ) : (
+                  <>This week's window is closed. Browse what the band submitted below.</>
+                )}
+              </div>
+              <div className="mt-3.5 py-[10px] px-3 bg-panel border border-rule-soft flex items-start gap-2.5 max-w-[580px]" style={{ borderLeft: '3px solid var(--brand)' }}>
+                <Mono className="text-[10px] text-brand tracking-[.18em] uppercase whitespace-nowrap pt-0.5">Be cool ·</Mono>
+                <div className="text-xs leading-[1.45] text-ink-soft">
+                  Submissions must be <strong className="text-ink">appropriate and on-theme</strong>. Anything off-theme, offensive, or otherwise inappropriate is subject to removal by program leaders.
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              <Mono className="text-[11px] text-ink-soft tracking-[.18em] uppercase mb-1.5">Open gallery · all time</Mono>
+              <h1 className="font-tight font-extrabold text-[56px] leading-[1.02] tracking-[-0.035em] mt-1 mb-0">
+                Your map,{' '}<span className="text-brand">your art.</span>
+              </h1>
+              <div className="mt-3.5 text-sm leading-[1.45] text-ink-soft max-w-[580px]">
+                Submit any route from this season — no theme, no deadline. As many pieces as you like.
+              </div>
+              <div className="mt-3.5 py-[10px] px-3 bg-panel border border-rule-soft flex items-start gap-2.5 max-w-[580px]" style={{ borderLeft: '3px solid var(--brand)' }}>
+                <Mono className="text-[10px] text-brand tracking-[.18em] uppercase whitespace-nowrap pt-0.5">Be cool ·</Mono>
+                <div className="text-xs leading-[1.45] text-ink-soft">
+                  Keep it <strong className="text-ink">appropriate</strong>. Anything offensive or otherwise inappropriate is subject to removal by program leaders.
+                </div>
+              </div>
+            </>
+          )}
         </div>
 
         <div className="flex flex-col gap-3 items-start">
-          <WeekNav periods={periods} livePeriodId={livePeriodId} selectedPeriodId={selectedPeriodId} onSelect={setSelectedPeriodId} />
+          {tab === 'weekly' && (
+            <WeekNav periods={periods} livePeriodId={livePeriodId} selectedPeriodId={selectedPeriodId} onSelect={setSelectedPeriodId} />
+          )}
           <div className="bg-panel border border-rule-soft w-full p-[14px] px-[18px]" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)' }}>
-            <div>
-              <Mono className="text-[10px] text-ink-soft tracking-[.14em] uppercase">Theme</Mono>
-              <div className="font-tight font-extrabold text-[22px] text-brand tracking-[-0.02em] mt-0.5">{theme ?? '—'}</div>
-            </div>
-            <div>
-              <Mono className="text-[10px] text-ink-soft tracking-[.14em] uppercase">{isSelectedLive ? 'Submitted so far' : 'Final entries'}</Mono>
-              <div className="font-tight font-extrabold text-[22px] tracking-[-0.02em] mt-0.5">{wall.length}</div>
-            </div>
+            {tab === 'weekly' ? (
+              <>
+                <div>
+                  <Mono className="text-[10px] text-ink-soft tracking-[.14em] uppercase">Theme</Mono>
+                  <div className="font-tight font-extrabold text-[22px] text-brand tracking-[-0.02em] mt-0.5">{theme ?? '—'}</div>
+                </div>
+                <div>
+                  <Mono className="text-[10px] text-ink-soft tracking-[.14em] uppercase">{isSelectedLive ? 'Submitted so far' : 'Final entries'}</Mono>
+                  <div className="font-tight font-extrabold text-[22px] tracking-[-0.02em] mt-0.5">{wall.length}</div>
+                </div>
+              </>
+            ) : (
+              <>
+                <div>
+                  <Mono className="text-[10px] text-ink-soft tracking-[.14em] uppercase">Open entries</Mono>
+                  <div className="font-tight font-extrabold text-[22px] tracking-[-0.02em] mt-0.5">{openWallPublic.length}</div>
+                </div>
+                <div>
+                  <Mono className="text-[10px] text-ink-soft tracking-[.14em] uppercase">Your pieces</Mono>
+                  <div className="font-tight font-extrabold text-[22px] tracking-[-0.02em] mt-0.5">{myOpenSubs.length}</div>
+                </div>
+              </>
+            )}
           </div>
         </div>
+      </div>
+
+      {/* Tab switcher */}
+      <div className="flex items-center gap-4 py-4">
+        <TabSwitcher tab={tab} onChange={setTab} />
       </div>
 
       <Rule soft />
 
-      {isSelectedLive && !loading && (
+      {/* Weekly tab content */}
+      {tab === 'weekly' && (
         <>
-          <section className="mt-6">
-            <div className="flex justify-between items-baseline mb-[10px]">
-              <h2 className="font-tight font-extrabold text-[22px] tracking-[-0.02em] m-0">Pick an activity</h2>
-              <div className="flex items-center gap-3">
-                <Mono className="text-[11px] text-ink-soft tracking-[.1em] uppercase">{periodActivities.length} from {dates}</Mono>
-                <div className="hidden sm:flex gap-1">
-                  <button
-                    onClick={() => carouselRef.current?.scrollBy({ left: -240, behavior: 'smooth' })}
-                    className="w-7 h-7 border border-rule-soft bg-panel flex items-center justify-center text-ink-soft hover:text-ink cursor-pointer font-sans text-base leading-none"
-                    aria-label="Scroll left"
-                  >‹</button>
-                  <button
-                    onClick={() => carouselRef.current?.scrollBy({ left: 240, behavior: 'smooth' })}
-                    className="w-7 h-7 border border-rule-soft bg-panel flex items-center justify-center text-ink-soft hover:text-ink cursor-pointer font-sans text-base leading-none"
-                    aria-label="Scroll right"
-                  >›</button>
-                </div>
-              </div>
+          {isSelectedLive && !loading && (
+            <SubmissionControls
+              activities={periodActivities}
+              activityId={activityId}
+              onActivityId={setActivityId}
+              rotation={rotation}
+              onRotation={setRotation}
+              strokeColor={strokeColor}
+              onStrokeColor={setStrokeColor}
+              bgColor={bgColor}
+              onBgColor={setBgColor}
+              strokeWidth={strokeWidth}
+              onStrokeWidth={setStrokeWidth}
+              title={title}
+              onTitle={setTitle}
+              visibility={visibility}
+              onVisibility={setVisibility}
+              saving={saving}
+              onSave={handleSave}
+              onWithdraw={handleWithdraw}
+              activeSub={activeSub}
+              submittedAt={activeSub?.submitted_at}
+              saveLabel={activeSub ? 'Update artwork' : 'Submit artwork'}
+              footerNote="One submission per person, per week. You can revise until Sun 11:59pm."
+              carouselRef={carouselRef}
+              activityDateLabel={`from ${dates}`}
+            />
+          )}
+
+          <div className="mt-9">
+            <div className="flex items-baseline justify-between mb-[10px]">
+              <h2 className="font-tight font-extrabold text-[22px] tracking-[-0.02em] m-0">
+                {isSelectedLive ? "This week's wall" : `${selectedPeriodLabel} wall · ${theme ?? ''}`}
+              </h2>
+              <Mono className="text-[11px] text-ink-soft tracking-[.1em] uppercase">{wall.length} entries</Mono>
             </div>
             <Rule />
-            {periodActivities.length === 0 ? (
-              <div className="py-10 text-center text-ink-soft text-sm">No activities recorded this week yet.</div>
+            {loading ? (
+              <div className="py-16 text-center text-ink-soft text-sm">Loading…</div>
+            ) : wall.length === 0 ? (
+              <div className="py-16 text-center text-ink-soft text-sm">No public submissions yet.</div>
             ) : (
-              <div
-                ref={carouselRef}
-                className="flex overflow-x-auto gap-3 pb-3 mt-[10px]"
-                style={{ scrollSnapType: 'x mandatory', scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-              >
-                {periodActivities.map((a) => {
-                  const isSel = activityId === a.activity_id;
-                  return (
-                    <button
-                      key={a.id}
-                      onClick={() => { setActivityId(a.activity_id); setRotation(0); }}
-                      className="text-left border-none bg-transparent p-0 cursor-pointer font-sans shrink-0 w-[200px] sm:w-[220px] flex flex-col"
-                      style={{ scrollSnapAlign: 'start' }}
-                    >
-                      <div
-                        className="w-full h-[120px] bg-panel-alt border overflow-hidden"
-                        style={{
-                          borderColor: isSel ? 'var(--brand)' : 'var(--rule-soft)',
-                          boxShadow: isSel ? 'inset 0 0 0 2px var(--brand)' : 'none',
-                        }}
-                      >
-                        {tinyMap({ svgPath: a.svg_path, svgViewBox: a.svg_view_box, accent: isSel ? 'var(--brand)' : 'var(--ink-soft)' })}
-                      </div>
-                      <div
-                        className="flex-1 p-2.5 pt-2 border border-t-0 flex flex-col gap-0.5"
-                        style={{ borderColor: isSel ? 'var(--brand)' : 'var(--rule-soft)' }}
-                      >
-                        <Mono className="text-[10px] text-ink-soft tracking-[.12em] uppercase leading-tight">
-                          {new Date(a.datetime).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: CT })} · {a.sport_type}
-                        </Mono>
-                        <div className={['font-bold text-sm tracking-[-0.01em] mt-0.5 whitespace-nowrap overflow-hidden text-ellipsis', isSel ? 'text-brand' : 'text-ink'].join(' ')}>
-                          {a.name}
-                        </div>
-                        <div className="flex items-center justify-between mt-0.5">
-                          <Mono className="text-[11px] text-ink-soft">
-                            {a.distance > 0 ? `${a.distance.toFixed(1)} mi` : '—'} · {a.minutes} min
-                          </Mono>
-                          <div
-                            className="w-[14px] h-[14px] shrink-0 rounded-full border grid place-items-center"
-                            style={{
-                              borderWidth: '1.5px',
-                              borderColor: isSel ? 'var(--brand)' : 'var(--rule-soft)',
-                              background: isSel ? 'var(--brand)' : 'transparent',
-                            }}
-                          >
-                            {isSel && <span className="w-[6px] h-[6px] rounded-full bg-panel" />}
-                          </div>
-                        </div>
-                      </div>
-                    </button>
-                  );
-                })}
+              <div className="grid grid-cols-2 lg:grid-cols-4">
+                {wall.map((s, i) => (
+                  <div
+                    key={s.id}
+                    className={[
+                      colSep(i, { base: 2, lg: 4 }),
+                      rowSep(i, wall.length, { base: 2, lg: 4 }),
+                    ].join(' ')}
+                  >
+                    <SubmissionTile s={s} onLike={handleToggleLike} isOwn={s.id === activeSub?.id} />
+                  </div>
+                ))}
               </div>
             )}
-          </section>
-
-          <section className="mt-8">
-            <div className="flex justify-between items-baseline mb-[10px]">
-              <h2 className="font-tight font-extrabold text-[22px] tracking-[-0.02em] m-0">Your submission</h2>
-              {activeSub && (
-                <div className="inline-flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-good" />
-                  <Mono className="text-[10px] text-ink-soft tracking-[.12em] uppercase">
-                    Submitted · {fmtDate(activeSub.submitted_at)}
-                  </Mono>
-                </div>
-              )}
-            </div>
-            <Rule />
-            <div className="grid grid-cols-1 lg:grid-cols-[1fr,360px] gap-6 mt-[10px]">
-              <div>
-                <CompositionCanvas
-                  path={currentPath}
-                  svgViewBox={currentViewBox}
-                  rotation={rotation}
-                  title={title}
-                  visibility={visibility}
-                  memberName={me?.name}
-                  memberSection={me?.section}
-                  strokeColor={strokeColor}
-                  bgColor={bgColor}
-                  strokeWidth={strokeWidth}
-                  isOwner
-                />
-              </div>
-              <div>
-                <div className="py-[10px] px-3 bg-panel border border-rule-soft flex flex-col gap-2">
-                  <div className="flex justify-between items-center">
-                    <Mono className="text-[10px] text-ink-soft tracking-[.14em] uppercase">Orient your route</Mono>
-                    <Mono className="text-[10px] text-ink-soft tabular-nums">{((rotation % 360) + 360) % 360}°</Mono>
-                  </div>
-                  <input
-                    type="range"
-                    min="0"
-                    max="359"
-                    step="1"
-                    value={((rotation % 360) + 360) % 360}
-                    onChange={(e) => setRotation(Number(e.target.value))}
-                    className="w-full accent-ink cursor-pointer"
-                    style={{ height: 2, accentColor: 'var(--ink)' }}
-                  />
-                </div>
-                <div className="mt-3.5 py-[10px] px-3 bg-panel border border-rule-soft">
-                  <ColorPicker
-                    strokeColor={strokeColor}
-                    bgColor={bgColor}
-                    onStrokeColor={setStrokeColor}
-                    onBgColor={setBgColor}
-                  />
-                </div>
-                <div className="mt-3.5">
-                  <StrokeWidthPicker value={strokeWidth} onChange={setStrokeWidth} />
-                </div>
-                <div className="mt-3.5">
-                  <Mono className="text-[10px] text-ink-soft tracking-[.14em] uppercase">Title your piece</Mono>
-                  <input
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    placeholder="Untitled"
-                    className="mt-1.5 py-[10px] px-3 w-full border border-rule bg-panel text-ink font-tight font-bold text-lg tracking-[-0.01em] outline-none box-border placeholder:text-ink-soft"
-                  />
-                </div>
-                <div className="mt-3.5">
-                  <VisibilityRadio value={visibility} onChange={setVisibility} />
-                </div>
-                <div className="flex gap-2.5 mt-4">
-                  <button
-                    onClick={handleSave}
-                    disabled={saving || !activityId}
-                    className="flex-1 py-[14px] px-5 bg-ink text-panel border-none font-tight font-bold text-sm tracking-[.06em] uppercase cursor-pointer disabled:opacity-50"
-                  >
-                    {saving ? 'Saving…' : activeSub ? 'Update artwork' : 'Submit artwork'}
-                  </button>
-                  {activeSub && (
-                    <button
-                      onClick={handleWithdraw}
-                      className="py-[14px] px-[18px] bg-transparent text-brand border border-brand font-tight font-bold text-sm tracking-[.06em] uppercase cursor-pointer"
-                    >
-                      Withdraw
-                    </button>
-                  )}
-                </div>
-                <Mono className="block mt-[10px] text-[11px] text-ink-soft">
-                  One submission per person, per week. You can revise until Sun 11:59pm.
-                </Mono>
-              </div>
-            </div>
-          </section>
+          </div>
         </>
       )}
 
-      <div className="mt-9">
-        <div className="flex items-baseline justify-between mb-[10px]">
-          <h2 className="font-tight font-extrabold text-[22px] tracking-[-0.02em] m-0">
-            {isSelectedLive ? "This week's wall" : `${selectedPeriodLabel} wall · ${theme ?? ''}`}
-          </h2>
-          <Mono className="text-[11px] text-ink-soft tracking-[.1em] uppercase">{wall.length} entries</Mono>
-        </div>
-        <Rule />
-        {loading ? (
-          <div className="py-16 text-center text-ink-soft text-sm">Loading…</div>
-        ) : wall.length === 0 ? (
-          <div className="py-16 text-center text-ink-soft text-sm">No public submissions yet.</div>
-        ) : (
-          <div className="grid grid-cols-2 lg:grid-cols-4">
-            {wall.map((s, i) => (
-              <div
-                key={s.id}
-                className={[
-                  colSep(i, { base: 2, lg: 4 }),
-                  rowSep(i, wall.length, { base: 2, lg: 4 }),
-                ].join(' ')}
-              >
-                <SubmissionTile s={s} onLike={handleToggleLike} isOwn={s.id === activeSub?.id} />
+      {/* Open tab content */}
+      {tab === 'open' && (
+        <>
+          {openLoading ? (
+            <div className="py-16 text-center text-ink-soft text-sm">Loading…</div>
+          ) : (
+            <>
+              <SubmissionControls
+                activities={openActivities}
+                activityId={openActivityId}
+                onActivityId={setOpenActivityId}
+                rotation={openRotation}
+                onRotation={setOpenRotation}
+                strokeColor={openStrokeColor}
+                onStrokeColor={setOpenStrokeColor}
+                bgColor={openBgColor}
+                onBgColor={setOpenBgColor}
+                strokeWidth={openStrokeWidth}
+                onStrokeWidth={setOpenStrokeWidth}
+                title={openTitle}
+                onTitle={setOpenTitle}
+                visibility={openVisibility}
+                onVisibility={setOpenVisibility}
+                saving={openSaving}
+                onSave={handleSaveOpen}
+                onWithdraw={null}
+                activeSub={editingOpenSubId ? myOpenSubs.find((s) => s.id === editingOpenSubId) ?? null : null}
+                submittedAt={editingOpenSubId ? myOpenSubs.find((s) => s.id === editingOpenSubId)?.submitted_at : null}
+                saveLabel={editingOpenSubId ? 'Update artwork' : 'Submit artwork'}
+                footerNote={editingOpenSubId ? 'Editing an existing piece.' : 'Submit as many pieces as you like — open any time.'}
+                carouselRef={openCarouselRef}
+                activityDateLabel="from this season"
+              />
+
+              {/* My open pieces */}
+              {myOpenSubs.length > 0 && (
+                <div className="mt-9">
+                  <div className="flex items-baseline justify-between mb-[10px]">
+                    <h2 className="font-tight font-extrabold text-[22px] tracking-[-0.02em] m-0">Your pieces</h2>
+                    <Mono className="text-[11px] text-ink-soft tracking-[.1em] uppercase">{myOpenSubs.length} {myOpenSubs.length === 1 ? 'piece' : 'pieces'}</Mono>
+                  </div>
+                  <Rule />
+                  <div className="grid grid-cols-2 lg:grid-cols-4">
+                    {myOpenSubs.map((s, i) => (
+                      <div
+                        key={s.id}
+                        className={[
+                          colSep(i, { base: 2, lg: 4 }),
+                          rowSep(i, myOpenSubs.length, { base: 2, lg: 4 }),
+                        ].join(' ')}
+                      >
+                        <div className="p-4 pb-[18px]">
+                          <ArtworkFrame
+                            path={s.svg_path}
+                            svgViewBox={s.svg_view_box}
+                            rotation={s.rotation}
+                            strokeColor={s.stroke_color}
+                            bgColor={s.bg_color}
+                            strokeWidth={s.stroke_width}
+                            className="mb-3"
+                          />
+                          <div className="font-bold text-sm tracking-[-0.01em] mb-1.5">{s.title || 'Untitled'}</div>
+                          <div className="flex justify-between items-center gap-2">
+                            <Mono className="text-[11px] text-ink-soft capitalize">{s.visibility}</Mono>
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => handleEditOpenSub(s)}
+                                className={[
+                                  'font-mono text-[10px] tracking-[.1em] uppercase py-1 px-2 border cursor-pointer font-sans',
+                                  editingOpenSubId === s.id
+                                    ? 'bg-ink text-panel border-ink'
+                                    : 'bg-transparent text-ink-soft border-rule-soft hover:text-ink hover:border-rule',
+                                ].join(' ')}
+                              >
+                                Edit
+                              </button>
+                              <button
+                                onClick={() => handleDeleteOpenSub(s)}
+                                className="font-mono text-[10px] tracking-[.1em] uppercase py-1 px-2 border border-rule-soft bg-transparent text-brand cursor-pointer font-sans hover:border-brand"
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Open gallery */}
+              <div className="mt-9">
+                <div className="flex items-baseline justify-between mb-[10px]">
+                  <h2 className="font-tight font-extrabold text-[22px] tracking-[-0.02em] m-0">Open gallery</h2>
+                  <Mono className="text-[11px] text-ink-soft tracking-[.1em] uppercase">{openWallPublic.length} entries</Mono>
+                </div>
+                <Rule />
+                {openWallPublic.length === 0 ? (
+                  <div className="py-16 text-center text-ink-soft text-sm">No public submissions yet.</div>
+                ) : (
+                  <div className="grid grid-cols-2 lg:grid-cols-4">
+                    {openWallPublic.map((s, i) => {
+                      const isOwn = myOpenSubs.some((ms) => ms.id === s.id);
+                      return (
+                        <div
+                          key={s.id}
+                          className={[
+                            colSep(i, { base: 2, lg: 4 }),
+                            rowSep(i, openWallPublic.length, { base: 2, lg: 4 }),
+                          ].join(' ')}
+                        >
+                          <SubmissionTile s={s} onLike={isOwn ? null : handleToggleOpenLike} isOwn={isOwn} />
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
-            ))}
-          </div>
-        )}
-      </div>
+            </>
+          )}
+        </>
+      )}
 
       <PageFooter />
       <BottomNav />

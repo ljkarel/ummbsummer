@@ -11,16 +11,18 @@ from .models import Activity
 from .serializers import ActivitySerializer
 
 
-class TenPerPagePagination(PageNumberPagination):
-    page_size = 10
+class TwelvePerPagePagination(PageNumberPagination):
+    page_size = 12
+    page_size_query_param = 'page_size'
+    max_page_size = 500
 
 
 class MemberActivitiesView(ListAPIView):
     serializer_class = ActivitySerializer
-    pagination_class = TenPerPagePagination
+    pagination_class = TwelvePerPagePagination
 
     def get_queryset(self):
-        qs = Activity.objects.filter(member=self.request.user.member).select_related('period')
+        qs = Activity.objects.filter(member=self.request.user.member).select_related('period').order_by('-datetime')
 
         sport = self.request.query_params.get('sport')
         if sport:

@@ -10,6 +10,7 @@ export function useSwipeNavigation() {
   const startX = useRef(null);
 
   const onTouchStart = (e) => {
+    if (e.target.closest('[data-no-swipe]')) return;
     startX.current = e.touches[0].clientX;
   };
 

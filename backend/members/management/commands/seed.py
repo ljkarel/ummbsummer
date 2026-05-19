@@ -429,6 +429,9 @@ class Command(BaseCommand):
                         "title": f"{fake.word().capitalize()} {ART_THEMES.get(period_name, 'Art')}",
                         "rotation": mem_rng.choice([0, 45, 90, 135, 180, 225, 270, 315]),
                         "visibility": mem_rng.choice(visibility_choices),
+                        "stroke_color": mem_rng.choice(['', '#e54b4b', '#e59c4b', '#f0c94b', '#4dc96b', '#4b8ef0', '#a04be5', '#ffffff']),
+                        "bg_color": mem_rng.choice(['', '#0a0a0a', '#2a1f14', '#2b0d14', '#1a1a2e', '#0d2818', '#3d3d3d', '#f8f5f0', '#ffffff', '#dce8f5', '#f5e6d0']),
+                        "stroke_width": mem_rng.choice([1.0, 2.8, 5.0, 8.0]),
                         "is_withdrawn": False,
                     },
                 )
@@ -457,6 +460,73 @@ class Command(BaseCommand):
         sub_count = ArtSubmission.objects.count()
         like_count = ArtLike.objects.count()
         self.stdout.write(f"  {sub_count} submissions, {like_count} likes created.")
+
+        self.stdout.write("Seeding open art submissions...")
+        # Pick a deterministic subset of 8 connected members for open submissions
+        all_connected = sorted(
+            Member.objects.filter(strava_auth__isnull=False),
+            key=lambda m: m.pk,
+        )
+        open_submitters = all_connected[:8]
+        # Gather all season activities (any period)
+        season_activities = list(
+            Activity.objects.filter(member__in=open_submitters, period__isnull=False)
+        )
+        activity_by_member = {}
+        for a in season_activities:
+            activity_by_member.setdefault(a.member_id, []).append(a)
+
+        open_visibility_choices = (
+            [ArtSubmission.VISIBILITY_PUBLIC] * 6
+            + [ArtSubmission.VISIBILITY_ANONYMOUS] * 3
+            + [ArtSubmission.VISIBILITY_PRIVATE] * 1
+        )
+
+        open_subs_created = []
+        for member in open_submitters:
+            member_acts = activity_by_member.get(member.pk, [])
+            if not member_acts:
+                continue
+            mem_rng = random.Random(member.pk * 5381 + base_seed + 999)
+            n_subs = mem_rng.randint(1, 3)
+            for k in range(n_subs):
+                sub_rng = random.Random(member.pk * 5381 + k * 113 + base_seed + 999)
+                activity = sub_rng.choice(member_acts)
+                sub = ArtSubmission.objects.create(
+                    member=member,
+                    period=None,
+                    activity=activity,
+                    title=f"{fake.word().capitalize()} {fake.word().capitalize()}",
+                    rotation=sub_rng.choice([0, 45, 90, 135, 180, 225, 270, 315]),
+                    visibility=sub_rng.choice(open_visibility_choices),
+                    stroke_color=sub_rng.choice(['', '#e54b4b', '#e59c4b', '#f0c94b', '#4dc96b', '#4b8ef0', '#a04be5', '#ffffff']),
+                    bg_color=sub_rng.choice(['', '#0a0a0a', '#2a1f14', '#2b0d14', '#1a1a2e', '#0d2818', '#3d3d3d', '#f8f5f0', '#ffffff', '#dce8f5', '#f5e6d0']),
+                    stroke_width=sub_rng.choice([1.0, 2.8, 5.0, 8.0]),
+                )
+                open_subs_created.append(sub)
+
+        # Add likes to public/anonymous open submissions
+        public_open_subs = [
+            s for s in open_subs_created
+            if s.visibility in (ArtSubmission.VISIBILITY_PUBLIC, ArtSubmission.VISIBILITY_ANONYMOUS)
+        ]
+        open_submitter_pks = {m.pk for m in open_submitters}
+        potential_likers = sorted(
+            Member.objects.filter(strava_auth__isnull=False).exclude(pk__in=open_submitter_pks),
+            key=lambda m: m.pk,
+        )[:30]
+        for sub in public_open_subs:
+            sub_rng = random.Random(sub.pk * 6571 + base_seed + 999)
+            if not potential_likers:
+                break
+            n_likes = sub_rng.randint(1, min(10, len(potential_likers)))
+            liking_members = sub_rng.sample(potential_likers, n_likes)
+            ArtLike.objects.bulk_create(
+                [ArtLike(submission=sub, member=liker) for liker in liking_members],
+                ignore_conflicts=True,
+            )
+
+        self.stdout.write(f"  {len(open_subs_created)} open submissions created.")
 
         self.stdout.write(self.style.SUCCESS("\nSeed complete!"))
         self.stdout.write(f"  Sections:             {Section.objects.count()}")

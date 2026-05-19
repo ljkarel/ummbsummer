@@ -64,12 +64,12 @@ export function SettingsDrawer({ open, onClose }) {
 
       <div
         onClick={onClose}
-        className="absolute inset-0 z-[90]"
+        className="fixed inset-0 z-[90]"
         style={{ background: 'rgba(15,10,5,.28)', animation: 'fadeIn .15s ease-out' }}
       />
 
       <div
-        className="absolute top-[70px] right-9 w-96 bg-panel text-ink border border-rule z-[100] font-sans"
+        className="fixed inset-0 w-full overflow-y-auto sm:inset-auto sm:top-[70px] sm:right-9 sm:w-96 sm:overflow-visible bg-panel text-ink border border-rule z-[100] font-sans"
         style={{ boxShadow: '0 16px 60px rgba(0,0,0,.18)', animation: 'drawerIn .18s cubic-bezier(.2,.7,.3,1)' }}
       >
         {/* Header */}

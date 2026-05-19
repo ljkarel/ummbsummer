@@ -1,5 +1,6 @@
 from django.shortcuts import get_object_or_404
 from rest_framework import status
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -109,7 +110,7 @@ class ArtSubmissionDetailView(APIView):
         submission = get_object_or_404(ArtSubmission, pk=pk)
         if submission.member != request.user.member:
             return None, Response({'error': 'Not your submission.'}, status=status.HTTP_403_FORBIDDEN)
-        if submission.period.state != 'live':
+        if submission.period_id is not None and submission.period.state != 'live':
             return None, Response({'error': 'This period is no longer live.'}, status=status.HTTP_403_FORBIDDEN)
         return submission, None
 
@@ -175,3 +176,69 @@ class ArtLikeToggleView(APIView):
             liked = True
 
         return Response({'liked': liked, 'likesCount': submission.likes.count()})
+
+
+class ArtOpenWallView(APIView):
+    """GET /api/art/open-wall/ — public open (non-weekly) art wall."""
+
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        submissions = (
+            ArtSubmission.objects
+            .filter(
+                period__isnull=True,
+                is_withdrawn=False,
+                visibility__in=[ArtSubmission.VISIBILITY_PUBLIC, ArtSubmission.VISIBILITY_ANONYMOUS],
+            )
+            .select_related('member', 'member__section', 'activity')
+            .prefetch_related('likes')
+        )
+        submissions = sorted(submissions, key=lambda s: s.likes.count(), reverse=True)
+        serializer = ArtWallSubmissionSerializer(submissions, many=True, context={'request': request})
+        return Response({'submissions': serializer.data})
+
+
+class MyArtOpenSubmissionsView(APIView):
+    """GET /api/art/open-submissions/me/ — current user's open submissions."""
+
+    def get(self, request):
+        member = request.user.member
+        submissions = (
+            ArtSubmission.objects
+            .filter(member=member, period__isnull=True, is_withdrawn=False)
+            .select_related('activity')
+            .order_by('-submitted_at')
+        )
+        return Response(MyArtSubmissionSerializer(submissions, many=True).data)
+
+
+class ArtOpenSubmissionCreateView(APIView):
+    """POST /api/art/open-submissions/ — create a new open submission."""
+
+    def post(self, request):
+        member = request.user.member
+
+        activity_id = request.data.get('activityId')
+        activity = None
+        if activity_id:
+            from activities.models import Activity
+            try:
+                activity = Activity.objects.get(activity_id=activity_id, member=member)
+            except Activity.DoesNotExist:
+                return Response({'error': 'Activity not found or does not belong to you.'}, status=status.HTTP_400_BAD_REQUEST)
+            if activity.period_id is None:
+                return Response({'error': 'Activity does not belong to the current season.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        submission = ArtSubmission.objects.create(
+            member=member,
+            period=None,
+            activity=activity,
+            title=request.data.get('title', ''),
+            rotation=request.data.get('rotation', 0),
+            visibility=request.data.get('visibility', ArtSubmission.VISIBILITY_PUBLIC),
+            stroke_color=request.data.get('strokeColor', ''),
+            bg_color=request.data.get('bgColor', ''),
+            stroke_width=request.data.get('strokeWidth', 2.8),
+        )
+        return Response(MyArtSubmissionSerializer(submission).data, status=status.HTTP_201_CREATED)

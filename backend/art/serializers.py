@@ -50,7 +50,7 @@ class MyArtSubmissionSerializer(serializers.ModelSerializer):
     svg_view_box = serializers.SerializerMethodField()
     likes = serializers.SerializerMethodField()
     activity_id = serializers.SerializerMethodField()
-    period_n = serializers.IntegerField(source='period.id', read_only=True)
+    period_n = serializers.SerializerMethodField()
 
     class Meta:
         model = ArtSubmission
@@ -60,6 +60,9 @@ class MyArtSubmissionSerializer(serializers.ModelSerializer):
             'visibility', 'is_withdrawn', 'svg_path', 'svg_view_box', 'likes',
             'submitted_at', 'updated_at',
         ]
+
+    def get_period_n(self, obj):
+        return obj.period_id
 
     def get_svg_path(self, obj):
         if obj.activity:
