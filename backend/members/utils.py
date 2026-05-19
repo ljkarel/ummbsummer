@@ -64,10 +64,11 @@ def import_roster(csv_path="./roster.csv"):
             member, created = Member.objects.update_or_create(
                 email=email,
                 defaults={
-                    'first_name': row['first name'].strip(),
-                    'last_name': row['last name'].strip(),
+                    'first_name': row['first_name'].strip(),
+                    'last_name': row['last_name'].strip(),
                     'section': section,
-                    'year': int(row['year'])
+                    'year': int(row['year']),
+                    'is_leader': row.get('is_leader', 'F').strip().upper() == 'T',
                 }
             )
 
