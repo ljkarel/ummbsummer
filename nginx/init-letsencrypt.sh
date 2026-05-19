@@ -17,13 +17,6 @@ if [ -d "$DATA_PATH/conf/live/$DOMAIN" ]; then
     exit 0
 fi
 
-echo "### Downloading recommended TLS parameters..."
-mkdir -p "$DATA_PATH/conf"
-curl -s https://raw.githubusercontent.com/certbot/certbot/master/certbot-nginx/certbot_nginx/_internal/tls_configs/options-ssl-nginx.conf \
-    > "$DATA_PATH/conf/options-ssl-nginx.conf"
-curl -s https://raw.githubusercontent.com/certbot/certbot/master/certbot/certbot/ssl-dhparams.pem \
-    > "$DATA_PATH/conf/ssl-dhparams.pem"
-
 echo "### Creating dummy certificate for $DOMAIN..."
 mkdir -p "$DATA_PATH/conf/live/$DOMAIN"
 docker compose --profile prod run --rm --entrypoint "\
