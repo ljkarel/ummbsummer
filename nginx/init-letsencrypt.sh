@@ -10,16 +10,15 @@ DOMAIN="ummbsummer.com"
 EMAIL="lukas.karel@astrinbio.com"
 STAGING=0  # Set to 1 to use Let's Encrypt staging (no rate limits, for testing)
 
-DATA_PATH="./certbot"
-
-if [ -d "$DATA_PATH/conf/live/$DOMAIN" ]; then
+if docker compose --profile prod run --rm \
+    --entrypoint "test -f /etc/letsencrypt/live/$DOMAIN/fullchain.pem" certbot; then
     echo "Certificates already exist for $DOMAIN. Nothing to do."
     exit 0
 fi
 
 echo "### Creating dummy certificate for $DOMAIN..."
-mkdir -p "$DATA_PATH/conf/live/$DOMAIN"
 docker compose --profile prod run --rm --entrypoint "\
+    mkdir -p /etc/letsencrypt/live/$DOMAIN && \
     openssl req -x509 -nodes -newkey rsa:4096 -days 1 \
         -keyout '/etc/letsencrypt/live/$DOMAIN/privkey.pem' \
         -out    '/etc/letsencrypt/live/$DOMAIN/fullchain.pem' \
