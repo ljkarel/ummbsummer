@@ -1,10 +1,10 @@
 import { useEffect, useState, useMemo, Fragment } from 'react';
-import { Mono, Tag } from '../components/ui.jsx';
+import { Mono, Tag, PreCompetitionOverlay } from '../components/ui.jsx';
 import { TopBar } from '../components/layout/TopBar.jsx';
 import { BottomNav } from '../components/layout/BottomNav.jsx';
 import { PageFooter } from '../components/layout/PageFooter.jsx';
 
-import { getMe, getActivities, getSportTypes, getActivityHeatmap } from '../lib/api.js';
+import { getMe, getActivities, getSportTypes, getActivityHeatmap, getPeriods } from '../lib/api.js';
 import { colSep, rowSep } from '../utils/gridSep.js';
 
 function RouteThumb({ svgPath, svgViewBox = '0 0 100 100' }) {
@@ -106,6 +106,7 @@ function ActivityCard({ a }) {
 export default function Activity() {
 
   const [me, setMe] = useState(null);
+  const [periods, setPeriods] = useState([]);
   const [heatData, setHeatData] = useState({});
   const [activities, setActivities] = useState([]);
   const [totalCount, setTotalCount] = useState(0);
@@ -133,8 +134,9 @@ export default function Activity() {
   }
 
   useEffect(() => {
-    Promise.all([getMe(), getActivities(), getSportTypes(), getActivityHeatmap()]).then(([meData, actData, sportsData, heatmapData]) => {
+    Promise.all([getMe(), getActivities(), getSportTypes(), getActivityHeatmap(), getPeriods()]).then(([meData, actData, sportsData, heatmapData, periodsData]) => {
       setMe(meData);
+      setPeriods(periodsData);
       setActivities(actData.results ?? []);
       setTotalCount(actData.count ?? 0);
       setOriginalTotalCount(actData.count ?? 0);
@@ -171,10 +173,14 @@ export default function Activity() {
     return sorted;
   }, [activities, sort]);
 
+  const competitionStarted = periods.length > 0 && periods.some((p) => p.state !== 'future');
+  const competitionStartDate = periods[0]?.start_date ?? null;
+
   return (
     <div className="w-full min-h-screen bg-bg text-ink font-sans px-9 pt-3 pb-20 relative" data-page-root>
       <TopBar />
 
+      <PreCompetitionOverlay show={!competitionStarted && periods.length > 0} startDate={competitionStartDate}>
       <div className="py-3 border-b border-rule-soft">
         <Mono className="text-sm text-ink-soft">
           <span className="text-brand font-bold">{originalTotalCount.toLocaleString()}</span> activities
@@ -261,6 +267,7 @@ export default function Activity() {
       )}
 
       <PageFooter />
+      </PreCompetitionOverlay>
       <BottomNav />
     </div>
   );

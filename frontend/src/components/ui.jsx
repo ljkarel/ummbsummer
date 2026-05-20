@@ -129,6 +129,32 @@ export function TrendHeader() {
   );
 }
 
+export function PreCompetitionOverlay({ show, startDate, children }) {
+  const formatted = startDate
+    ? new Date(startDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+    : null;
+
+  if (!show) return children;
+
+  return (
+    <>
+      <div className="blur-sm pointer-events-none select-none" aria-hidden="true">
+        {children}
+      </div>
+      <div className="fixed inset-0 z-20 flex items-center justify-center pointer-events-none">
+        <div className="bg-panel border border-rule-soft px-8 py-7 max-w-sm w-full mx-4 text-center shadow-lg pointer-events-auto">
+          <p className="text-base font-semibold text-ink tracking-tight mb-1">Competition hasn't started yet</p>
+          {formatted && (
+            <p className="text-sm text-ink-soft">
+              The Summer Challenge begins on {formatted}. Check back then!
+            </p>
+          )}
+        </div>
+      </div>
+    </>
+  );
+}
+
 export function RouteMap({ svgPath, svgViewBox = '0 0 100 100' }) {
   return (
     <div className="relative w-full h-full">

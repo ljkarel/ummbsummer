@@ -37,10 +37,13 @@ def compute_member_streak(member) -> int:
 
 
 def get_active_competition():
-    """Return the Competition whose date range contains today, or None."""
+    """Return the active competition (contains today), or the nearest upcoming one."""
     from metrics.models import Competition
     today = dj_timezone.now().date()
-    return Competition.objects.filter(start_date__lte=today, end_date__gte=today).first()
+    return (
+        Competition.objects.filter(start_date__lte=today, end_date__gte=today).first()
+        or Competition.objects.filter(start_date__gt=today).order_by('start_date').first()
+    )
 
 
 def import_roster(csv_path="./roster.csv"):

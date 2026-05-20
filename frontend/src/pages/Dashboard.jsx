@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Mono, Rule, Tag, CountUp, ScoringCurve, RouteMap, TrendCell, TrendHeader } from '../components/ui.jsx';
+import { Mono, Rule, Tag, CountUp, ScoringCurve, RouteMap, TrendCell, TrendHeader, PreCompetitionOverlay } from '../components/ui.jsx';
 import { useFlipAnimation } from '../lib/useFlipAnimation.js';
 import { TopBar } from '../components/layout/TopBar.jsx';
 import { BottomNav } from '../components/layout/BottomNav.jsx';
@@ -236,6 +236,9 @@ export default function Dashboard() {
   const stravaConnected = me?.strava_connected ?? true;
   const showStravaModal = !stravaModalDismissed && (stravaWasCancelled || (me !== null && !stravaConnected));
 
+  const competitionStarted = periods.length > 0 && periods.some((p) => p.state !== 'future');
+  const competitionStartDate = periods[0]?.start_date ?? null;
+
   return (
     <div className="w-full min-h-screen bg-bg text-ink font-sans px-9 pt-3 pb-20 relative" data-page-root>
       <TopBar stravaConnected={stravaConnected} />
@@ -275,6 +278,8 @@ export default function Dashboard() {
           <button onClick={() => { window.location.href = `${BASE}/api/strava/init/`; }} className="text-[11px] font-mono font-bold text-brand bg-transparent border-none cursor-pointer whitespace-nowrap p-0">Connect →</button>
         </div>
       )}
+
+      <PreCompetitionOverlay show={!competitionStarted && periods.length > 0} startDate={competitionStartDate}>
 
       {/* Hero grid */}
       <div className="grid grid-cols-1 lg:grid-cols-[1.5fr_1fr] gap-8 items-end py-[15px]">
@@ -593,6 +598,7 @@ export default function Dashboard() {
       </div>
 
       <PageFooter />
+      </PreCompetitionOverlay>
       <BottomNav />
     </div>
   );

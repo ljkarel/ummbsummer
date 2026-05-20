@@ -3,7 +3,7 @@ import random
 from datetime import date, datetime, time, timedelta, timezone
 
 from django.contrib.auth.models import User
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
 from faker import Faker
 
 from activities.models import Activity
@@ -37,27 +37,31 @@ SECTIONS = [
     ("Alto Saxophone",  33),
 ]
 
-PERIOD_DATES = [
-    # (name, start_date, end_date, freeze_datetime_utc)
-    ("Week 1",  date(2026, 5,  4), date(2026, 5, 10), datetime(2026,  5, 11, 4, 59, tzinfo=timezone.utc)),
-    ("Week 2",  date(2026, 5, 11), date(2026, 5, 17), datetime(2026,  5, 18, 4, 59, tzinfo=timezone.utc)),
-    ("Week 3",  date(2026, 5, 18), date(2026, 5, 24), datetime(2026,  5, 25, 4, 59, tzinfo=timezone.utc)),
-    ("Week 4",  date(2026, 5, 25), date(2026, 5, 31), datetime(2026,  6,  1, 4, 59, tzinfo=timezone.utc)),
-    ("Week 5",  date(2026, 6,  1), date(2026, 6,  7), datetime(2026,  6,  8, 4, 59, tzinfo=timezone.utc)),
-    ("Week 6",  date(2026, 6,  8), date(2026, 6, 14), datetime(2026,  6, 15, 4, 59, tzinfo=timezone.utc)),
-    ("Week 7",  date(2026, 6, 15), date(2026, 6, 21), datetime(2026,  6, 22, 4, 59, tzinfo=timezone.utc)),
-    ("Week 8",  date(2026, 6, 22), date(2026, 6, 28), datetime(2026,  6, 29, 4, 59, tzinfo=timezone.utc)),
-    ("Week 9",  date(2026, 6, 29), date(2026, 7,  5), datetime(2026,  7,  6, 4, 59, tzinfo=timezone.utc)),
-    ("Week 10", date(2026, 7,  6), date(2026, 7, 12), datetime(2026,  7, 13, 4, 59, tzinfo=timezone.utc)),
-    ("Week 11", date(2026, 7, 13), date(2026, 7, 19), datetime(2026,  7, 20, 4, 59, tzinfo=timezone.utc)),
-    ("Week 12", date(2026, 7, 20), date(2026, 7, 26), datetime(2026,  7, 27, 4, 59, tzinfo=timezone.utc)),
-]
-
 ART_THEMES = {
     "Week 1": "Loop",
     "Week 2": "Letter U",
     "Week 3": "Letter M",
 }
+
+
+def build_period_dates(start_date, weeks):
+    """Return list of (name, start, end, freeze_utc) for each week.
+
+    start_date must be a Monday. Each period runs Mon–Sun; freeze is the
+    following Monday at 04:59 UTC (= Sunday 11:59 pm CDT).
+    """
+    periods = []
+    for i in range(weeks):
+        week_start = start_date + timedelta(weeks=i)
+        week_end = week_start + timedelta(days=6)
+        freeze = datetime(
+            *(week_end + timedelta(days=1)).timetuple()[:3],
+            4, 59,
+            tzinfo=timezone.utc,
+        )
+        periods.append((f"Week {i + 1}", week_start, week_end, freeze))
+    return periods
+
 
 SPORT_TYPES = [
     ("Run",          True,  6.0),   # has distance, ~6 min/mile
@@ -166,11 +170,40 @@ class Command(BaseCommand):
             default=42,
             help="Random seed for reproducibility (default: 42).",
         )
+        parser.add_argument(
+            "--start-date",
+            type=str,
+            default="2026-05-04",
+            help="Competition start date as YYYY-MM-DD (must be a Monday).",
+        )
+        parser.add_argument(
+            "--weeks",
+            type=int,
+            default=12,
+            help="Number of weeks in the competition (default: 12).",
+        )
 
     def handle(self, *args, **options):
         rng = random.Random(options["random_seed"])
         fake = Faker()
         fake.seed_instance(options["random_seed"])
+
+        try:
+            comp_start = date.fromisoformat(options["start_date"])
+        except ValueError:
+            raise CommandError("--start-date must be in YYYY-MM-DD format.")
+        if comp_start.weekday() != 0:
+            raise CommandError(
+                f"--start-date must be a Monday. {comp_start} is a "
+                f"{comp_start.strftime('%A')}."
+            )
+        n_weeks = options["weeks"]
+        if n_weeks < 1:
+            raise CommandError("--weeks must be at least 1.")
+
+        period_dates = build_period_dates(comp_start, n_weeks)
+        comp_end = period_dates[-1][2]  # last week's end (Sunday)
+        comp_name = f"Summer '{comp_start.strftime('%y')}"
 
         if options["flush"]:
             self.stdout.write("Flushing existing data...")
@@ -179,12 +212,12 @@ class Command(BaseCommand):
 
         self.stdout.write("Seeding competition and periods...")
         competition, _ = Competition.objects.get_or_create(
-            name="Summer '26",
-            defaults={"start_date": date(2026, 5, 4), "end_date": date(2026, 7, 26)},
+            name=comp_name,
+            defaults={"start_date": comp_start, "end_date": comp_end},
         )
 
         periods = {}
-        for name, start, end, freeze in PERIOD_DATES:
+        for name, start, end, freeze in period_dates:
             period, _ = CompetitionPeriod.objects.get_or_create(
                 competition=competition,
                 name=name,
@@ -303,12 +336,20 @@ class Command(BaseCommand):
         self.stdout.write(f"  {connected_count} members connected, others pending/unregistered.")
 
         self.stdout.write("Seeding activities (bulk_create — skips Mapbox)...")
-        active_periods = [periods[n] for n in ("Week 1", "Week 2", "Week 3")]
-        acts_per_period = {
-            "Week 1": (2, 5),
-            "Week 2": (2, 5),
-            "Week 3": (0, 3),
-        }
+        today = date.today()
+        now_utc = datetime.now(tz=timezone.utc)
+        # Seed activities for periods that have started (past or current)
+        active_periods = [
+            p for p in periods.values()
+            if p.start_date <= today
+        ]
+
+        def acts_range_for_period(period):
+            # First two active periods get 2–5, subsequent ones 0–3
+            idx = active_periods.index(period)
+            return (2, 5) if idx < 2 else (0, 3)
+
+        acts_per_period = {p.name: acts_range_for_period(p) for p in active_periods}
 
         connected_members = list(
             Member.objects.filter(strava_auth__isnull=False).prefetch_related("activities")
@@ -371,21 +412,32 @@ class Command(BaseCommand):
                         private=False,
                     ))
 
-        Activity.objects.bulk_create(activities_to_create, ignore_conflicts=True)
-        self.stdout.write(f"  {len(activities_to_create)} activities created.")
+        if active_periods:
+            Activity.objects.bulk_create(activities_to_create, ignore_conflicts=True)
+            self.stdout.write(f"  {len(activities_to_create)} activities created.")
+        else:
+            self.stdout.write("  No active periods yet — skipping activity seeding.")
 
         self.stdout.write("Freezing scores for completed periods...")
-        for period_name in ("Week 1", "Week 2"):
-            freeze_section_period_scores(periods[period_name])
-        self.stdout.write("  Scores frozen for Period 1 and Period 2.")
+        done_periods = [p for p in periods.values() if p.freeze_datetime < now_utc]
+        for period in done_periods:
+            freeze_section_period_scores(period)
+        if done_periods:
+            self.stdout.write(f"  Scores frozen for {', '.join(p.name for p in done_periods)}.")
+        else:
+            self.stdout.write("  No completed periods to freeze.")
 
         self.stdout.write("Seeding art weeks...")
-        for period_name, theme in ART_THEMES.items():
+        art_period_names = [p.name for p in active_periods[:3]]
+        art_weeks_created = 0
+        for period_name in art_period_names:
+            theme = ART_THEMES.get(period_name, f"Theme for {period_name}")
             ArtWeek.objects.get_or_create(
                 period=periods[period_name],
                 defaults={"theme": theme},
             )
-        self.stdout.write(f"  {len(ART_THEMES)} art weeks ready.")
+            art_weeks_created += 1
+        self.stdout.write(f"  {art_weeks_created} art weeks ready.")
 
         self.stdout.write("Seeding art submissions and likes...")
         visibility_choices = (
@@ -394,7 +446,7 @@ class Command(BaseCommand):
             + [ArtSubmission.VISIBILITY_PRIVATE] * 1
         )
 
-        for period_name in ("Week 1", "Week 2", "Week 3"):
+        for period_name in art_period_names:
             period = periods[period_name]
             period_members = list(
                 Member.objects.filter(

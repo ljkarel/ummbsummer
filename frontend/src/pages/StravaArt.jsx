@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { HeartIcon } from '@heroicons/react/24/outline';
 import { HeartIcon as HeartSolidIcon } from '@heroicons/react/24/solid';
-import { Mono, Rule, Tag } from '../components/ui.jsx';
+import { Mono, Rule, Tag, PreCompetitionOverlay } from '../components/ui.jsx';
 import { colSep, rowSep } from '../utils/gridSep.js';
 import { TopBar } from '../components/layout/TopBar.jsx';
 import { BottomNav } from '../components/layout/BottomNav.jsx';
@@ -585,6 +585,7 @@ export default function StravaArt() {
 
   // — Weekly state —
   const [me, setMe] = useState(null);
+  const [allPeriods, setAllPeriods] = useState([]);
   const [periods, setPeriods] = useState([]);
   const [livePeriodId, setLivePeriodId] = useState(null);
   const [selectedPeriodId, setSelectedPeriodId] = useState(null);
@@ -625,12 +626,14 @@ export default function StravaArt() {
   useEffect(() => {
     Promise.all([getPeriods(), getMe()]).then(([periodsData, meData]) => {
       setMe(meData);
+      setAllPeriods(periodsData);
       const artPeriods = periodsData.filter((p) => p.state === 'done' || p.state === 'live');
       setPeriods(artPeriods);
       const live = artPeriods.find((p) => p.state === 'live');
       const initial = live ?? artPeriods[artPeriods.length - 1];
       if (live) setLivePeriodId(live.id);
       if (initial) setSelectedPeriodId(initial.id);
+      else setLoading(false);
     });
   }, []);
 
@@ -914,6 +917,7 @@ export default function StravaArt() {
     <div className="w-full min-h-screen bg-bg text-ink font-sans px-9 pt-3 pb-20 relative" data-page-root>
       <TopBar />
 
+      <PreCompetitionOverlay show={allPeriods.length > 0 && allPeriods.every((p) => p.state === 'future')} startDate={allPeriods[0]?.start_date ?? null}>
       {/* Hero grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-end py-[26px] pb-[22px]">
         <div>
@@ -1190,6 +1194,7 @@ export default function StravaArt() {
       )}
 
       <PageFooter />
+      </PreCompetitionOverlay>
       <BottomNav />
     </div>
   );
