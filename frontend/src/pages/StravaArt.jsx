@@ -29,6 +29,7 @@ function themeHeading(theme) {
   if (theme === 'Letter M') return <>Make an <span className="text-brand">M</span> for Minnesota.</>;
   if (theme === 'Letter U') return <>Trace a <span className="text-brand">U</span> on the map.</>;
   if (theme === 'Loop') return <>Run a <span className="text-brand">loop</span>, any loop.</>;
+  if (theme === 'Flower') return <>Draw a <span className="text-brand">flower</span> with your route.</>;
   return <><span className="text-brand">{theme}</span> — draw the shape.</>;
 }
 
