@@ -196,7 +196,14 @@ export default function Activity() {
         <Heatmap heatData={heatData} />
       </div>
 
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mt-8 pb-[10px] border-b" style={{ borderBottomWidth: '1.5px', borderBottomColor: 'var(--ink)' }}>
+      <div className="mt-8 pb-[10px] border-b" style={{ borderBottomWidth: '1.5px', borderBottomColor: 'var(--ink)' }}>
+        <h2 className="font-tight font-extrabold text-[22px] m-0" style={{ letterSpacing: '-0.02em' }}>Bonus points</h2>
+      </div>
+      <div className="py-10 flex flex-col items-center justify-center bg-panel-alt border border-rule-soft mt-0 mb-8">
+        <Mono className="text-[11px] text-ink-soft tracking-[.14em] uppercase">Bonus point tracking coming very soon</Mono>
+      </div>
+
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center pb-[10px] border-b" style={{ borderBottomWidth: '1.5px', borderBottomColor: 'var(--ink)' }}>
         <div className="flex items-center gap-3">
           <h2 className="font-tight font-extrabold text-[22px] m-0" style={{ letterSpacing: '-0.02em' }}>All activities</h2>
           <Mono className="text-[11px] text-ink-soft tracking-[.1em] uppercase">{filtered.length} of {originalTotalCount}</Mono>
