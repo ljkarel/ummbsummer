@@ -31,7 +31,7 @@ class SectionSerializer(serializers.ModelSerializer):
 
 class MemberMeSerializer(serializers.Serializer):
     name = serializers.CharField()
-    section = serializers.CharField()
+    section = serializers.CharField(allow_null=True)
     week_minutes = serializers.IntegerField()
     week_points = serializers.FloatField()
     total_minutes = serializers.IntegerField()

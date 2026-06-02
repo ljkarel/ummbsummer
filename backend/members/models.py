@@ -65,9 +65,11 @@ class Member(models.Model):
 
     section = models.ForeignKey(
         Section,
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name='members',
-        help_text="The section that the member belongs to."
+        help_text="The section that the member belongs to. Null for independent members."
     )
 
     first_name = models.CharField(
@@ -81,8 +83,15 @@ class Member(models.Model):
     )
 
     year = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
         choices=[(1, 'Rookie'), (2, '2nd Year'), (3, '3rd Year'), (4, '4th Year'), (5, '5th Year+')],
-        help_text="The member's year in band."
+        help_text="The member's year in band. Null for independent members."
+    )
+
+    is_independent = models.BooleanField(
+        default=False,
+        help_text="If True, this member is not part of any section and is excluded from the roster and section scoring."
     )
 
     email = models.EmailField(

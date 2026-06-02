@@ -208,7 +208,7 @@ class PublicStatsView(APIView):
                     live_found = True
 
         total_minutes = Activity.objects.aggregate(t=Sum('minutes'))['t'] or 0
-        member_count = Member.objects.count()
+        member_count = Member.objects.filter(is_independent=False).count()
         section_count = Section.objects.count()
 
         return Response({

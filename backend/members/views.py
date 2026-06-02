@@ -103,7 +103,7 @@ class MemberMeView(APIView):
 
         data = {
             'name': member.display_name,
-            'section': member.section.name,
+            'section': member.section.name if member.section else None,
             'week_minutes': week_minutes,
             'week_points': week_points,
             'total_minutes': total_minutes,
@@ -132,7 +132,7 @@ class MemberMeView(APIView):
 
 class RosterView(APIView):
     def get(self, request):
-        qs = Member.objects.select_related(
+        qs = Member.objects.filter(is_independent=False).select_related(
             'section', 'preferences', 'user'
         ).prefetch_related('strava_auth').order_by('section__name', 'last_name', 'first_name')
 

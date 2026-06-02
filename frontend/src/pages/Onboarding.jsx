@@ -246,13 +246,16 @@ export function OnboardingDone() {
           You're <span className="text-brand">in.</span>
         </h1>
         <p className="text-[18px] leading-relaxed text-ink-soft mt-5 max-w-[560px] mx-auto">
-          Welcome to Summer '26{me ? `, ${me.name}` : ''}. We matched you to the{' '}
-          <strong className="text-ink">{me?.section ?? '…'}</strong> section. We'll back-sync any activities you've already done this summer on your first dashboard load.
+          Welcome to Summer '26{me ? `, ${me.name}` : ''}.{' '}
+          {me?.section
+            ? <>We matched you to the <strong className="text-ink">{me.section}</strong> section. We'll back-sync any activities you've already done this summer on your first dashboard load.</>
+            : <>You're set up as an independent participant. We'll back-sync any activities you've already done this summer on your first dashboard load.</>
+          }
         </p>
 
         <div className="mt-7 inline-flex gap-0 border border-rule-soft">
           {[
-            { k: "SECTION",  v: me?.section ?? '…',                           colored: true },
+            { k: "SECTION",  v: me?.section ?? '—',                           colored: true },
             { k: "WEEK",     v: totalPeriods ? `${livePeriodN} / ${totalPeriods} live` : '…', colored: false },
             { k: "FREEZES",  v: "Sun 11:59pm",                                colored: false },
           ].map((s, i) => (
