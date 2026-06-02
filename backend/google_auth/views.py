@@ -170,7 +170,8 @@ class GoogleAuthCallbackView(APIView):
         user = member.user
         if not user:
             # If the user doesn't exist, create it using the unique Google ID
-            member.user, _ = User.objects.get_or_create(username=f'member_{google_id}')
+            user, _ = User.objects.get_or_create(username=f'member_{google_id}')
+            member.user = user
             member.save()
 
         # Log the member's user in
