@@ -12,7 +12,7 @@ class SportTypeListFilter(admin.SimpleListFilter):
     parameter_name = 'sport type'
 
     def lookups(self, request, model_admin):
-        used_sports = Activity.objects.values_list('sport_type', flat=True).distinct()
+        used_sports = Activity.objects.order_by('sport_type').values_list('sport_type', flat=True).distinct()
         choices_dict = dict(Activity._meta.get_field('sport_type').choices)
 
         lookups = [
