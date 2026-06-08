@@ -260,3 +260,10 @@ class StravaAuth(models.Model):
 
     def __str__(self):
         return f"{self.member.roster_name}'s Strava authorization tokens"
+
+
+class MemberWeeklyScore(Member):
+    class Meta:
+        proxy = True
+        verbose_name = 'Member Weekly Score'
+        verbose_name_plural = 'Member Weekly Scores'

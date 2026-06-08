@@ -1,10 +1,14 @@
 import traceback
 
 from django.contrib import admin
+from django.contrib.admin import SimpleListFilter
+from django.db.models import Q, Sum
 
 from strava.utils import update_member_activities
 
-from .models import Member, MemberPreferences, Section, StravaAuth
+from metrics.models import CompetitionPeriod, compute_points
+
+from .models import Member, MemberPreferences, MemberWeeklyScore, Section, StravaAuth
 
 
 @admin.register(Section)
@@ -50,6 +54,53 @@ class MemberAdmin(admin.ModelAdmin):
             self.message_user(request, f"Failed to update the following member(s): {names}", level='error')
 
     actions = ('update_activities',)
+
+
+class PeriodListFilter(SimpleListFilter):
+    title = 'week'
+    parameter_name = 'period'
+
+    def lookups(self, request, model_admin):
+        return [(p.pk, str(p)) for p in CompetitionPeriod.objects.all()]
+
+    def queryset(self, request, queryset):
+        return queryset
+
+
+@admin.register(MemberWeeklyScore)
+class MemberWeeklyScoreAdmin(admin.ModelAdmin):
+    list_display = ('__str__', 'section', 'display_minutes', 'display_points')
+    list_display_links = None
+    list_filter = (PeriodListFilter, 'section')
+    search_fields = ('first_name', 'last_name', 'preferences__nickname', 'email')
+
+    def get_actions(self, _request):
+        return {}
+
+    def has_add_permission(self, _request):
+        return False
+
+    def has_change_permission(self, _request, _obj=None):
+        return False
+
+    def has_delete_permission(self, _request, _obj=None):
+        return False
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        period_id = request.GET.get('period')
+        activity_filter = Q(activities__deleted_at__isnull=True)
+        if period_id:
+            activity_filter &= Q(activities__period_id=period_id)
+        return qs.annotate(total_minutes=Sum('activities__minutes', filter=activity_filter))
+
+    @admin.display(description='Minutes', ordering='total_minutes')
+    def display_minutes(self, obj):
+        return obj.total_minutes or 0
+
+    @admin.display(description='Points', ordering='total_minutes')
+    def display_points(self, obj):
+        return round(compute_points(obj.total_minutes or 0), 1)
 
 
 @admin.register(MemberPreferences)
