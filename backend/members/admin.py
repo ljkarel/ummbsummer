@@ -2,7 +2,8 @@ import traceback
 
 from django.contrib import admin
 from django.contrib.admin import SimpleListFilter
-from django.db.models import Q, Sum
+from django.db.models import Q, Sum, Value
+from django.db.models.functions import Coalesce
 
 from strava.utils import update_member_activities
 
@@ -92,7 +93,9 @@ class MemberWeeklyScoreAdmin(admin.ModelAdmin):
         activity_filter = Q(activities__deleted_at__isnull=True)
         if period_id:
             activity_filter &= Q(activities__period_id=period_id)
-        return qs.annotate(total_minutes=Sum('activities__minutes', filter=activity_filter))
+        return qs.annotate(
+            total_minutes=Coalesce(Sum('activities__minutes', filter=activity_filter), Value(0))
+        )
 
     @admin.display(description='Minutes', ordering='total_minutes')
     def display_minutes(self, obj):
