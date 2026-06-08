@@ -71,7 +71,7 @@ function Podium({ rows, valueFor, animated }) {
               }}
                 className="font-tight font-extrabold text-xl tracking-[-0.02em] text-panel"
               >
-                {typeof value === 'number' ? value.toFixed(value < 100 ? 1 : 0) : value}
+                {typeof value === 'number' ? value.toFixed(1) : value}
               </div>
               {/* Border overlay — fades in with bar so they move together */}
               <div style={{
