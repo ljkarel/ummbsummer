@@ -30,6 +30,7 @@ function themeHeading(theme) {
   if (theme === 'Letter U') return <>Trace a <span className="text-brand">U</span> on the map.</>;
   if (theme === 'Loop') return <>Run a <span className="text-brand">loop</span>, any loop.</>;
   if (theme === 'Flower') return <>Draw a <span className="text-brand">flower</span> with your route.</>;
+  if (theme === 'Planes, Trains, Automobiles') return <>Draw a mode of <span className="text-brand">transportation!</span></>;
   return <><span className="text-brand">{theme}</span> — draw the shape.</>;
 }
 
