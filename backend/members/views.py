@@ -84,7 +84,6 @@ class MemberMeView(APIView):
             activities_this_period = member.activities.filter(
                 datetime__date__gte=current_period.start_date,
                 datetime__date__lte=current_period.end_date,
-                private=False,
             )
             week_minutes = sum(a.minutes for a in activities_this_period)
             week_points = round(compute_member_points_for_period(member, current_period), 2)
@@ -96,7 +95,6 @@ class MemberMeView(APIView):
             total_minutes = member.activities.filter(
                 datetime__date__gte=competition.start_date,
                 datetime__date__lte=competition.end_date,
-                private=False,
             ).values_list('minutes', flat=True)
             total_minutes = sum(total_minutes)
             total_points = round(sum(compute_member_points_for_period(member, p) for p in periods), 2)
