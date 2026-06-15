@@ -11,6 +11,7 @@ DELETION_REASONS = [
     ('strava_deauth', 'Strava access revoked'),
     ('sync_missing', 'Not found during sync'),
     ('date_out_of_range', 'Date outside all competition periods'),
+    ('admin_excluded', 'Excluded by admin'),
 ]
 
 

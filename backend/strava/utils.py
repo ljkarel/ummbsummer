@@ -171,14 +171,19 @@ def update_member_activities(member: Member):
                 'polyline': activity.get('map', {}).get('summary_polyline'),
                 'manual': activity['manual'],
                 'private': activity['private'],
-                'deleted_at': None,
-                'deletion_reason': '',
             }
 
-            Activity.all_objects.update_or_create(
+            obj, created = Activity.all_objects.get_or_create(
                 activity_id=activity_id,
-                defaults=activity_data
+                defaults={**activity_data, 'deleted_at': None, 'deletion_reason': ''},
             )
+            if not created:
+                for k, v in activity_data.items():
+                    setattr(obj, k, v)
+                if obj.deletion_reason != 'admin_excluded':
+                    obj.deleted_at = None
+                    obj.deletion_reason = ''
+                obj.save()
 
         if len(activities) != page_size:
             break
