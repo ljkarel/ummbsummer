@@ -31,6 +31,7 @@ function themeHeading(theme) {
   if (theme === 'Loop') return <>Run a <span className="text-brand">loop</span>, any loop.</>;
   if (theme === 'Flower') return <>Draw a <span className="text-brand">flower</span> with your route.</>;
   if (theme === 'Planes, Trains, Automobiles') return <>Draw a mode of <span className="text-brand">transportation!</span></>;
+  if (theme === 'Food') return <>Draw your favorite <span className="text-brand">food!</span></>;
   return <><span className="text-brand">{theme}</span> — draw the shape.</>;
 }
 
