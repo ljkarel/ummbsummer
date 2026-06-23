@@ -32,6 +32,7 @@ function themeHeading(theme) {
   if (theme === 'Flower') return <>Draw a <span className="text-brand">flower</span> with your route.</>;
   if (theme === 'Planes, Trains, Automobiles') return <>Draw a mode of <span className="text-brand">transportation!</span></>;
   if (theme === 'Food') return <>Draw your favorite <span className="text-brand">food!</span></>;
+  if (theme === 'Geometry') return <>Draw a <span className="text-brand">geometric shape</span>; a circle, triangle, or maybe even a hectohexecontadihedron!</>;
   return <><span className="text-brand">{theme}</span> — draw the shape.</>;
 }
 
