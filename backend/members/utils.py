@@ -1,12 +1,64 @@
 import csv
+import io
 from datetime import UTC, datetime, timedelta, timezone
 
 from django.conf import settings as django_settings
 from django.contrib.auth import get_user_model
-from django.core.mail import send_mail
+from django.core.mail import EmailMessage, send_mail
+from django.db.models import Sum
 from django.utils import timezone as dj_timezone
 
 from .models import Member, Section, StravaAuth
+
+
+def export_section_minutes_csv(period_id, section_slug) -> str:
+    from activities.models import Activity
+    from metrics.models import CompetitionPeriod
+
+    try:
+        period = CompetitionPeriod.objects.get(pk=period_id)
+    except CompetitionPeriod.DoesNotExist:
+        raise ValueError(f"CompetitionPeriod with id={period_id} does not exist.")
+
+    try:
+        section = Section.objects.get(slug=section_slug)
+    except Section.DoesNotExist:
+        raise ValueError(f"Section with slug='{section_slug}' does not exist.")
+
+    members = section.members.order_by('last_name', 'first_name')
+    member_minutes = {
+        row['member_id']: row['total']
+        for row in Activity.objects.filter(
+            member__section=section,
+            period=period,
+        ).values('member_id').annotate(total=Sum('minutes'))
+    }
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(['First Name', 'Last Name', 'Total Minutes'])
+    for member in members:
+        writer.writerow([member.first_name, member.last_name, member_minutes.get(member.pk, 0)])
+
+    return output.getvalue()
+
+
+def email_section_minutes_csv(period_id, section_slug, emails):
+    from metrics.models import CompetitionPeriod
+
+    period = CompetitionPeriod.objects.get(pk=period_id)
+    section = Section.objects.get(slug=section_slug)
+    csv_content = export_section_minutes_csv(period_id, section_slug)
+    filename = f"section_{section.slug}_period_{period_id}_{period.name.replace(' ', '_')}.csv"
+
+    msg = EmailMessage(
+        subject=f"Minutes Export: {section.name} — {period.name}",
+        body=f"Attached is the total minutes export for {section.name}, {period.name}.",
+        from_email=django_settings.DEFAULT_FROM_EMAIL,
+        to=emails,
+    )
+    msg.attach(filename, csv_content, 'text/csv')
+    msg.send()
 
 
 def notify_admins(subject, body):
