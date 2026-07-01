@@ -36,9 +36,9 @@ def export_section_minutes_csv(period_id, section_slug) -> str:
 
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(['First Name', 'Last Name', 'Total Minutes'])
+    writer.writerow(['First Name', 'Last Name', 'Year', 'Total Minutes'])
     for member in members:
-        writer.writerow([member.first_name, member.last_name, member_minutes.get(member.pk, 0)])
+        writer.writerow([member.first_name, member.last_name, member.year, member_minutes.get(member.pk, 0)])
 
     return output.getvalue()
 
