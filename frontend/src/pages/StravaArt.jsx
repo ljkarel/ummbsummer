@@ -36,6 +36,7 @@ function themeHeading(theme) {
   if (theme === 'Fantasy') return <>Draw anything from the world of <span className="text-brand">fantasy</span>.</>;
   if (theme === 'Sea Life') return <>Draw anything from <span className="text-brand">under the sea</span>!</>;
   if (theme === 'Space') return <>Theme is <span className="text-brand">space.</span> Draw something out of this world!</>;
+  if (theme === 'Bugs') return <>Draw your favorite creepy crawly <span className="text-brand">bug</span>!</>;
   return <><span className="text-brand">{theme}</span> — draw the shape.</>;
 }
 
